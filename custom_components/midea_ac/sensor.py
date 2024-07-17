@@ -117,7 +117,7 @@ class MideaSensor(MideaCoordinatorEntity, SensorEntity):
         """Check entity availability."""
 
         # Sensor is unavailable if device is offline or value is None
-        return self._device.online and self.native_value is not None
+        return super().available and self.native_value is not None
 
     @property
     def device_class(self) -> str:
