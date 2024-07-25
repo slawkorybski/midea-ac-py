@@ -77,6 +77,9 @@ Or search HACS integrations for "Midea Smart AC".
 ## Configuration
 Midea Smart AC is configured via the GUI. See [the HA docs](https://www.home-assistant.io/getting-started/integration/) for more details.
 
+Click the _Add Integration_ button and search for "Midea Smart AC".
+![Add Device](docs/add_device.png)
+
 Devices can be automatically discovered and configured or manually configured.
 
 ### Automatic Configuration
