@@ -24,21 +24,32 @@ See [Getting Device Info](#getting-device-info) to determine if a device is supp
 
 ## Features
 * Automatic device discovery and configuration via the GUI.
-* Device capability detection. Only supported modes, presets, fan speeds and functions are displayed.
-* Support for sleep, eco, boost (turbo) and away (freeze protection) presets.
-* Switch entities for purifier (ionizer/UV) and device display<sup>1</sup>.
-* Binary sensor entity for device filter alert when supported.
-* Minimum and maximum target temperatures from device.
-* Number entity for fan speed when device supports custom speeds.
-* Service to enable "Follow Me" function<sup>2</sup>.
-* Select entities to control swing angle when supported.
-* Indoor humidity sensor when supported.
-* Target humidity in Dry mode when supported.
-* Energy and power sensors when supported<sup>3</sup>.
-* Button and binary sensor to start & monitor self cleaning.
-* Select entities for rate select (gear) modes when supported.
-* Switch entities to control "breeze" modes when supported.
-* Translations
+* Device capability detection. Only supported functions are displayed.
+* Support for sleep, eco, boost (turbo), and away (freeze protection) presets.
+* Minimum and maximum target temperatures provided by the device.
+* Switch for device display<sup>1</sup>.
+* Advanced controls (when supported by the device):
+  * Purifier (Ionizer/UV)
+  * Device filter alert
+  * Custom fan speeds
+  * Service to enable the "Follow Me" function<sup>2</sup>
+  * Swing angle (fan position)
+  * Indoor humidity sensor
+  * Target humidity in Dry mode
+  * Energy and power sensors<sup>3</sup>
+  * Start and monitor self-cleaning
+  * Rate selection (Gear mode)
+  * "Breeze" modes (e.g., breeze away, breeze mild, breezeless)
+
+<small>
+
+1. Device dependent. Some devices only support display control via IR.
+2. Experimental. "Follow Me" requires the IR remote to transmit temperature data. More info [here](https://github.com/mill1000/midea-msmart/pull/91).
+3. Sensors must be manually enabled on the device page. A device may not support all energy sensors.
+</small>
+
+## Translations
+Thanks to the community the integration is available in the following languages.
   * български
   * Català
   * Čeština
@@ -59,13 +70,6 @@ See [Getting Device Info](#getting-device-info) to determine if a device is supp
   * Slovenčina
   * Slovenski
   * [Help contribute a new language](https://github.com/mill1000/midea-ac-py/issues/54)
-
-<small>
-
-1. Device dependent. Some devices only support display control via IR.
-2. Experimental. "Follow Me" requires the IR remote to transmit temperature data. More info [here](https://github.com/mill1000/midea-msmart/pull/91).
-3. Experimental. Sensors must be manually enabled on the device page.
-</small>
 
 ## Install Via HACS
 [![Install via HACs on your Home Assistant instance.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=mill1000&repository=midea-ac-py&category=integrations)
