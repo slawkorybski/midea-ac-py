@@ -123,7 +123,9 @@ Name | Default | Description
 **Use Alternate Energy Format** | False | Use an alternative data format when decoding energy and power data from the device.
 
 ## Resolving Connectivity Issues
-Some users have reported issue with their devices periodically becoming unavailable, and with logs full of warnings and errors. This is almost always due to the device terminating the existing connection and briefly rejecting new connections. It can usually be resolved by setting the `Maximum Connection Lifetime` to a value of about 90 seconds.
+Some users have reported issue with their devices periodically becoming unavailable, and with logs full of warnings and errors. This is almost always due to the device terminating the existing connection and briefly rejecting new connections. 
+
+It can usually be resolved by setting the `Maximum Connection Lifetime` to a value of about 90 seconds.
 
 ## Getting Device Info
 Use [msmart-ng](https://github.com/mill1000/midea-msmart) to obtain device information.
