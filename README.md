@@ -122,9 +122,11 @@ Name | Default | Description
 **Maximum Connection Lifetime** | Empty | Limit the time (in seconds) a connection to the device will be used before reconnecting. If left blank, the connection will persist indefinitely. If your device disconnects at regular intervals, set this to a value below the interval.
 **Use Alternate Energy Format** | False | Use an alternative data format when decoding energy and power data from the device.
 
+## Resolving Connectivity Issues
+Some users have reported issue with their devices periodically becoming unavailable, and with logs full of warnings and errors. This is almost always due to the device terminating the existing connection and briefly rejecting new connections. It can usually be resolved by setting the `Maximum Connection Lifetime` to a value of about 90 seconds.
 
 ## Getting Device Info
-Use the `midea-discover` command from [msmart-ng](https://github.com/mill1000/midea-msmart) to obtain device information.
+Use [msmart-ng](https://github.com/mill1000/midea-msmart) to obtain device information.
 ```shell
 pip install msmart-ng
 msmart-ng discover
