@@ -93,10 +93,16 @@ Click the _Add Integration_ button and search for "Midea Smart AC".
 Devices can be automatically discovered and configured or manually configured.
 
 ### Automatic Configuration
-For automatic configuration, select "Discover devices". Leave the host field blank to search the local network, or provide an IP/hostname to configure a specific device.
+For automatic configuration, select "Discover devices". 
+
+Enter a hostname or IP address to configure a specific device, or leave it blank to search the local network.
+
+Depending on your location, a different cloud region may be necessary to authenticate V3 devices. Try selecting the closest country to your location if you experience issues.
 
 ### Manual Configuration
-For manual configuration, select "Configure manually". Enter the device ID, IP, and port. V3 devices require the token and key parameter. This information must be [acquired manually](#getting-device-info).
+For manual configuration, select "Configure manually". 
+
+Enter the device ID, IP, and port. V3 devices require the token and key parameter. This information must be [acquired manually](#getting-device-info).
 
 ---
 Name | Description | Required | Example 
