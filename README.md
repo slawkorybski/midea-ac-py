@@ -99,10 +99,14 @@ Enter a hostname or IP address to configure a specific device, or leave it blank
 
 Depending on your location, a different cloud region may be necessary to authenticate V3 devices. Try selecting the closest country to your location if you experience issues.
 
+![Discover Devices](docs/discover_devices.png)
+
 ### Manual Configuration
 For manual configuration, select "Configure manually". 
 
 Enter the device ID, IP, and port. V3 devices require the token and key parameter. This information must be [acquired manually](#getting-device-info).
+
+![Manual Configuration](docs/manual_config.png)
 
 ---
 Name | Description | Required | Example 
@@ -115,6 +119,8 @@ Name | Description | Required | Example
 
 ## Integration Options
 Additional options are available to tweak integration behavior per device.
+
+![Integration Options](docs/options.png)
 
 ---
 Name | Default | Description 
