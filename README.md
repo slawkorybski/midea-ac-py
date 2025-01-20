@@ -72,6 +72,7 @@ Thanks to the community the integration is available in the following languages.
   * Pусский
   * Slovenčina
   * Slovenski
+  * Türkçe
   * українська
   * [Help contribute a new language](https://github.com/mill1000/midea-ac-py/issues/54)
 
