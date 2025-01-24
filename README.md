@@ -66,12 +66,14 @@ Thanks to the community the integration is available in the following languages.
   * 한국어
   * Magyar
   * Nederlands
+  * Norsk (bokmål)
   * Polski
   * Português
   * Română
   * Pусский
   * Slovenčina
   * Slovenski
+  * Türkçe
   * українська
   * [Help contribute a new language](https://github.com/mill1000/midea-ac-py/issues/54)
 
