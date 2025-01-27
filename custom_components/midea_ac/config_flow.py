@@ -27,7 +27,7 @@ from .const import (CONF_ADDITIONAL_OPERATION_MODES, CONF_BEEP,
                     CONF_ENERGY_FORMAT, CONF_FAN_SPEED_STEP, CONF_KEY,
                     CONF_MAX_CONNECTION_LIFETIME, CONF_SHOW_ALL_PRESETS,
                     CONF_TEMP_STEP, CONF_USE_FAN_ONLY_WORKAROUND, DOMAIN,
-                    EnergyFormat)
+                    UPDATE_INTERVAL, EnergyFormat)
 
 _DEFAULT_OPTIONS = {
     CONF_BEEP: True,
@@ -270,7 +270,7 @@ class MideaOptionsFlow(OptionsFlow):
                 vol.Optional(CONF_USE_FAN_ONLY_WORKAROUND): cv.boolean,
                 vol.Optional(CONF_SHOW_ALL_PRESETS): cv.boolean,
                 vol.Optional(CONF_ADDITIONAL_OPERATION_MODES): cv.string,
-                vol.Optional(CONF_MAX_CONNECTION_LIFETIME): vol.All(vol.Coerce(int), vol.Range(min=30)),
+                vol.Optional(CONF_MAX_CONNECTION_LIFETIME): vol.All(vol.Coerce(int), vol.Range(min=UPDATE_INTERVAL)),
                 vol.Optional(CONF_ENERGY_FORMAT): SelectSelector(
                     SelectSelectorConfig(
                         options=[e.value for e in EnergyFormat],
