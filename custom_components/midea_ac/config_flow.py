@@ -4,12 +4,14 @@ from __future__ import annotations
 from typing import Any, Optional, cast
 
 import homeassistant.helpers.config_validation as cv
+import httpx
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry, ConfigFlow, OptionsFlow
 from homeassistant.const import (CONF_COUNTRY_CODE, CONF_HOST, CONF_ID,
                                  CONF_PORT, CONF_TOKEN)
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
+from homeassistant.helpers import httpx_client
 from homeassistant.helpers.selector import (CountrySelector,
                                             CountrySelectorConfig,
                                             SelectSelector,
@@ -77,11 +79,14 @@ class MideaConfigFlow(ConfigFlow, domain=DOMAIN):
                 country_code, (None, None))
 
             # Attempt to find specified device
-            device = await Discover.discover_single(host,
-                                                    auto_connect=False,
-                                                    timeout=2,
-                                                    account=account,
-                                                    password=password)
+            device = await Discover.discover_single(
+                host,
+                auto_connect=False,
+                timeout=2,
+                account=account,
+                password=password,
+                get_async_client=self._get_async_client
+            )
 
             if device is None:
                 errors["base"] = "device_not_found"
@@ -151,7 +156,9 @@ class MideaConfigFlow(ConfigFlow, domain=DOMAIN):
             auto_connect=False,
             timeout=2,
             account=account,
-            password=password)
+            password=password,
+            get_async_client=self._get_async_client
+        )
 
         # Create dict of device ID to friendly name
         devices_name = {
@@ -208,6 +215,10 @@ class MideaConfigFlow(ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(step_id="manual",
                                     data_schema=data_schema, errors=errors)
+
+    def _get_async_client(self, *args, **kwargs) -> httpx.AsyncClient:
+        """Create an httpx AsyncClient in a HA friendly way."""
+        return httpx_client.get_async_client(self.hass, *args, **kwargs)
 
     async def _test_manual_connection(self, config) -> Optional[AC]:
         # Construct the device
