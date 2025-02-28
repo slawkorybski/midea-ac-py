@@ -28,8 +28,9 @@ from .const import (CONF_ADDITIONAL_OPERATION_MODES, CONF_BEEP,
                     CONF_CLOUD_COUNTRY_CODES, CONF_DEFAULT_CLOUD_COUNTRY,
                     CONF_ENERGY_FORMAT, CONF_FAN_SPEED_STEP, CONF_KEY,
                     CONF_MAX_CONNECTION_LIFETIME, CONF_SHOW_ALL_PRESETS,
-                    CONF_TEMP_STEP, CONF_USE_FAN_ONLY_WORKAROUND, DOMAIN,
-                    UPDATE_INTERVAL, EnergyFormat)
+                    CONF_SWING_ANGLE_RTL, CONF_TEMP_STEP,
+                    CONF_USE_FAN_ONLY_WORKAROUND, DOMAIN, UPDATE_INTERVAL,
+                    EnergyFormat)
 
 _DEFAULT_OPTIONS = {
     CONF_BEEP: True,
@@ -40,6 +41,7 @@ _DEFAULT_OPTIONS = {
     CONF_ADDITIONAL_OPERATION_MODES: None,
     CONF_MAX_CONNECTION_LIFETIME: None,
     CONF_ENERGY_FORMAT: EnergyFormat.DEFAULT,
+    CONF_SWING_ANGLE_RTL: False
 }
 
 _CLOUD_CREDENTIALS = {
@@ -289,6 +291,7 @@ class MideaOptionsFlow(OptionsFlow):
                         mode=SelectSelectorMode.DROPDOWN,
                     )
                 ),
+                vol.Optional(CONF_SWING_ANGLE_RTL): cv.boolean,
             }), self.config_entry.options)
 
         return self.async_show_form(step_id="init", data_schema=data_schema)
