@@ -22,7 +22,13 @@
       }
     },
     "select": {
+      "aux_mode": {
+        "default": "mdi:heating-coil"
+      },
       "horizontal_swing_angle": {
+        "default": "mdi:angle-acute"
+      },
+      "horizontal_swing_angle_rtl": {
         "default": "mdi:angle-acute"
       },
       "rate_select": {
