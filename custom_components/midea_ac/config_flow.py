@@ -6,15 +6,18 @@ from typing import Any, Optional, cast
 import homeassistant.helpers.config_validation as cv
 import httpx
 import voluptuous as vol
-from homeassistant.config_entries import ConfigEntry, ConfigFlow, OptionsFlow
+from homeassistant.config_entries import (ConfigEntry, ConfigFlow,
+                                          ConfigFlowResult, OptionsFlow)
 from homeassistant.const import (CONF_COUNTRY_CODE, CONF_HOST, CONF_ID,
-                                 CONF_PORT, CONF_TOKEN)
+                                 CONF_PORT, CONF_TOKEN, DEGREE)
 from homeassistant.core import callback
-from homeassistant.data_entry_flow import FlowResult
+from homeassistant.data_entry_flow import section
 from homeassistant.helpers import httpx_client
 from homeassistant.helpers.selector import (CountrySelector,
                                             CountrySelectorConfig,
-                                            SelectSelector,
+                                            NumberSelector,
+                                            NumberSelectorConfig,
+                                            NumberSelectorMode, SelectSelector,
                                             SelectSelectorConfig,
                                             SelectSelectorMode, TextSelector,
                                             TextSelectorConfig,
@@ -26,22 +29,32 @@ from msmart.lan import AuthenticationError
 
 from .const import (CONF_ADDITIONAL_OPERATION_MODES, CONF_BEEP,
                     CONF_CLOUD_COUNTRY_CODES, CONF_DEFAULT_CLOUD_COUNTRY,
-                    CONF_ENERGY_FORMAT, CONF_FAN_SPEED_STEP, CONF_KEY,
-                    CONF_MAX_CONNECTION_LIFETIME, CONF_SHOW_ALL_PRESETS,
-                    CONF_SWING_ANGLE_RTL, CONF_TEMP_STEP,
-                    CONF_USE_FAN_ONLY_WORKAROUND, DOMAIN, UPDATE_INTERVAL,
-                    EnergyFormat)
+                    CONF_ENERGY_DATA_FORMAT, CONF_ENERGY_DATA_SCALE,
+                    CONF_ENERGY_SENSOR, CONF_FAN_SPEED_STEP, CONF_KEY,
+                    CONF_MAX_CONNECTION_LIFETIME, CONF_POWER_SENSOR,
+                    CONF_SHOW_ALL_PRESETS, CONF_SWING_ANGLE_RTL,
+                    CONF_TEMP_STEP, CONF_USE_FAN_ONLY_WORKAROUND,
+                    CONF_WORKAROUNDS, DOMAIN, UPDATE_INTERVAL, EnergyFormat)
 
 _DEFAULT_OPTIONS = {
     CONF_BEEP: True,
     CONF_TEMP_STEP: 1.0,
     CONF_FAN_SPEED_STEP: 1,
-    CONF_USE_FAN_ONLY_WORKAROUND: False,
-    CONF_SHOW_ALL_PRESETS: False,
-    CONF_ADDITIONAL_OPERATION_MODES: None,
     CONF_MAX_CONNECTION_LIFETIME: None,
-    CONF_ENERGY_FORMAT: EnergyFormat.DEFAULT,
-    CONF_SWING_ANGLE_RTL: False
+    CONF_SWING_ANGLE_RTL: False,
+    CONF_ENERGY_SENSOR: {
+        CONF_ENERGY_DATA_FORMAT: EnergyFormat.BCD,
+        CONF_ENERGY_DATA_SCALE: 1.0
+    },
+    CONF_POWER_SENSOR: {
+        CONF_ENERGY_DATA_FORMAT: EnergyFormat.BCD,
+        CONF_ENERGY_DATA_SCALE: 1.0
+    },
+    CONF_WORKAROUNDS: {
+        CONF_USE_FAN_ONLY_WORKAROUND: False,
+        CONF_SHOW_ALL_PRESETS: False,
+        CONF_ADDITIONAL_OPERATION_MODES: "",
+    }
 }
 
 _CLOUD_CREDENTIALS = {
@@ -54,9 +67,9 @@ class MideaConfigFlow(ConfigFlow, domain=DOMAIN):
     """Config flow for Midea Smart AC."""
 
     VERSION = 1
-    MINOR_VERSION = 3
+    MINOR_VERSION = 4
 
-    async def async_step_user(self, _) -> FlowResult:
+    async def async_step_user(self, user_input=None) -> ConfigFlowResult:
         """Handle a config flow initialized by the user."""
         return self.async_show_menu(
             step_id="user",
@@ -65,7 +78,7 @@ class MideaConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_discover(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Handle the discovery step of config flow."""
         errors = {}
 
@@ -102,7 +115,7 @@ class MideaConfigFlow(ConfigFlow, domain=DOMAIN):
                 # Finish connection
                 try:
                     if await Discover.connect(device):
-                        return await self.async_step_show_token_key(device=device)
+                        return await self.async_step_show_token_key(device=cast(AC, device))
                     else:
                         # Indicate a connection could not be made
                         return self.async_abort(reason="cannot_connect")
@@ -131,7 +144,7 @@ class MideaConfigFlow(ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None,
         *,
         country_code: str = CONF_DEFAULT_CLOUD_COUNTRY
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Handle the pick device step of config flow."""
 
         if user_input is not None:
@@ -148,7 +161,7 @@ class MideaConfigFlow(ConfigFlow, domain=DOMAIN):
                 # Finish connection
                 try:
                     if await Discover.connect(device):
-                        return await self.async_step_show_token_key(device=device)
+                        return await self.async_step_show_token_key(device=cast(AC, device))
                     else:
                         # Indicate a connection could not be made
                         return self.async_abort(reason="cannot_connect")
@@ -199,8 +212,8 @@ class MideaConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_show_token_key(
         self, user_input: dict[str, Any] | None = None,
         *,
-        device: AC = None
-    ) -> FlowResult:
+        device: Optional[AC] = None
+    ) -> ConfigFlowResult:
         """Handle the show token step of config flow."""
 
         # V2 devices don't have a token and key to display
@@ -231,7 +244,7 @@ class MideaConfigFlow(ConfigFlow, domain=DOMAIN):
             data_schema=data_schema
         )
 
-    async def async_step_manual(self, user_input) -> FlowResult:
+    async def async_step_manual(self, user_input) -> ConfigFlowResult:
         """Handle the manual step of config flow."""
         errors = {}
 
@@ -278,7 +291,7 @@ class MideaConfigFlow(ConfigFlow, domain=DOMAIN):
             errors=errors
         )
 
-    async def async_step_reconfigure(self, user_input) -> FlowResult:
+    async def async_step_reconfigure(self, user_input) -> ConfigFlowResult:
         """Handle the reconfiguration step of config flow."""
         errors = {}
 
@@ -355,7 +368,7 @@ class MideaConfigFlow(ConfigFlow, domain=DOMAIN):
 
         return device if success else None
 
-    async def _create_entry_from_device(self, device) -> FlowResult:
+    async def _create_entry_from_device(self, device) -> ConfigFlowResult:
         # Save the device into global data
         self.hass.data.setdefault(DOMAIN, {})
 
@@ -381,7 +394,27 @@ class MideaConfigFlow(ConfigFlow, domain=DOMAIN):
 class MideaOptionsFlow(OptionsFlow):
     """Options flow from Midea Smart AC."""
 
-    async def async_step_init(self, user_input=None) -> FlowResult:
+    _ENERGY_SENSOR_SCHEMA = section(
+        vol.Schema(
+            {
+                vol.Required(CONF_ENERGY_DATA_FORMAT): SelectSelector(
+                    SelectSelectorConfig(
+                        options=[e.value for e in
+                                 [EnergyFormat.BCD, EnergyFormat.BINARY]],
+                        translation_key="energy_data_format",
+                        mode=SelectSelectorMode.DROPDOWN,
+                    ),
+                ),
+                vol.Required(CONF_ENERGY_DATA_SCALE): NumberSelector(
+                    NumberSelectorConfig(
+                        min=.001, step="any", mode=NumberSelectorMode.BOX)
+                ),
+            }
+        ),
+        {"collapsed": True}
+    )
+
+    async def async_step_init(self, user_input=None) -> ConfigFlowResult:
         """Handle the options flow."""
         if user_input is not None:
             return self.async_create_entry(data=user_input)
@@ -389,20 +422,33 @@ class MideaOptionsFlow(OptionsFlow):
         data_schema = self.add_suggested_values_to_schema(
             vol.Schema({
                 vol.Optional(CONF_BEEP): cv.boolean,
-                vol.Optional(CONF_TEMP_STEP): vol.All(vol.Coerce(float), vol.Range(min=0.5, max=5)),
-                vol.Optional(CONF_FAN_SPEED_STEP): vol.All(vol.Coerce(float), vol.Range(min=1, max=20)),
-                vol.Optional(CONF_USE_FAN_ONLY_WORKAROUND): cv.boolean,
-                vol.Optional(CONF_SHOW_ALL_PRESETS): cv.boolean,
-                vol.Optional(CONF_ADDITIONAL_OPERATION_MODES): cv.string,
-                vol.Optional(CONF_MAX_CONNECTION_LIFETIME): vol.All(vol.Coerce(int), vol.Range(min=UPDATE_INTERVAL)),
-                vol.Optional(CONF_ENERGY_FORMAT): SelectSelector(
-                    SelectSelectorConfig(
-                        options=[e.value for e in EnergyFormat],
-                        translation_key="energy_format",
-                        mode=SelectSelectorMode.DROPDOWN,
+                vol.Optional(CONF_SWING_ANGLE_RTL): cv.boolean,
+                vol.Optional(CONF_TEMP_STEP): NumberSelector(
+                    NumberSelectorConfig(
+                        min=.5,
+                        max=5,
+                        step=.5,
+                        unit_of_measurement=DEGREE
                     )
                 ),
-                vol.Optional(CONF_SWING_ANGLE_RTL): cv.boolean,
+                vol.Optional(CONF_FAN_SPEED_STEP): NumberSelector(
+                    NumberSelectorConfig(min=1, max=20, step=1)
+                ),
+                vol.Optional(CONF_MAX_CONNECTION_LIFETIME): vol.All(
+                    vol.Coerce(int),
+                    vol.Range(min=UPDATE_INTERVAL)
+                ),
+                vol.Optional(CONF_ENERGY_SENSOR): self._ENERGY_SENSOR_SCHEMA,
+                vol.Optional(CONF_POWER_SENSOR): self._ENERGY_SENSOR_SCHEMA,
+                vol.Optional(CONF_WORKAROUNDS): section(
+                    vol.Schema({
+                        vol.Optional(CONF_USE_FAN_ONLY_WORKAROUND): cv.boolean,
+                        vol.Optional(CONF_SHOW_ALL_PRESETS): cv.boolean,
+                        vol.Optional(CONF_ADDITIONAL_OPERATION_MODES): cv.string,
+                    }),
+                    {"collapsed": True},
+                )
+
             }), self.config_entry.options)
 
         return self.async_show_form(step_id="init", data_schema=data_schema)
