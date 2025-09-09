@@ -21,6 +21,10 @@ __Note: Only air conditioner devices (type 0xAC) are supported.__
 
 See [Getting Device Info](#getting-device-info) to determine if a device is supported.
 
+## Note On Cloud Usage
+This integration works locally. No internet connection is required to control your device. 
+
+_However_, for newer "V3" devices, the Midea Cloud is used to acquire a token & key during device discovery. Once configured, the token & key are saved and no further cloud connection is required. Devices are not linked to the built-in accounts. Concerned users may manually configure their devices by acquiring a token & key with their own account credentials via the msmart-ng CLI.
 
 ## Features
 * Automatic device discovery and configuration via the GUI.
@@ -163,3 +167,4 @@ This project is a fork of [mac-zhou/midea-ac-py](https://github.com/mac-zhou/mid
 * [NeoAcheron/midea-ac-py](https://github.com/NeoAcheron/midea-ac-py)
 * [andersonshatch/midea-ac-py](https://github.com/andersonshatch/midea-ac-py)
 * [yitsushi/midea-air-condition](https://github.com/yitsushi/midea-air-condition)
+
