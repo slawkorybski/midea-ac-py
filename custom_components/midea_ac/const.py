@@ -1,4 +1,8 @@
 from enum import StrEnum, auto
+from typing import TypeVar
+
+from msmart.device import AirConditioner as AC
+from msmart.device import CommercialCooler as CC
 
 DOMAIN = "midea_ac"
 UPDATE_INTERVAL = 15
@@ -32,3 +36,6 @@ class EnergyFormat(StrEnum):
     _DEFAULT = "default"
     _ALTERNATE_A = "alternate_a"
     _ALTERNATE_B = "alternate_b"
+
+
+MideaDevice = TypeVar("MideaDevice", AC, CC)

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any, Generic, Mapping, ClassVar
 
 import voluptuous as vol
 from homeassistant.components.climate import ClimateEntity
@@ -25,7 +26,7 @@ from msmart.device import CommercialCooler as CC
 from .const import (CONF_ADDITIONAL_OPERATION_MODES, CONF_BEEP,
                     CONF_SHOW_ALL_PRESETS, CONF_TEMP_STEP,
                     CONF_USE_FAN_ONLY_WORKAROUND, CONF_WORKAROUNDS, DOMAIN,
-                    PRESET_IECO, PRESET_SILENT)
+                    PRESET_IECO, PRESET_SILENT, MideaDevice)
 from .coordinator import MideaCoordinatorEntity, MideaDeviceUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -65,16 +66,19 @@ async def async_setup_entry(
     add_entities(entities)
 
 
-class MideaClimateDevice(MideaCoordinatorEntity, ClimateEntity):
+class MideaClimateDevice(MideaCoordinatorEntity[MideaDevice], ClimateEntity, Generic[MideaDevice]):
     """Base climate entity for Midea devices."""
 
     _attr_translation_key = DOMAIN
     _enable_turn_on_off_backwards_compatibility = False
 
+    _OPERATIONAL_MODE_TO_HVAC_MODE: ClassVar[Mapping[Any ,HVACMode]]
+    _HVAC_MODE_TO_OPERATIONAL_MODE: ClassVar[Mapping[HVACMode, Any]]
+
     def __init__(self,
                  hass: HomeAssistant,
-                 coordinator: MideaDeviceUpdateCoordinator,
-                 options: dict
+                 coordinator: MideaDeviceUpdateCoordinator[MideaDevice],
+                 options: Mapping[str, Any]
                  ) -> None:
         """Initialize the climate device."""
         MideaCoordinatorEntity.__init__(self, coordinator)
@@ -299,13 +303,13 @@ class MideaClimateDevice(MideaCoordinatorEntity, ClimateEntity):
         await self._apply()
 
 
-class MideaClimateACDevice(MideaClimateDevice):
+class MideaClimateACDevice(MideaClimateDevice[AC]):
     """Climate entity for Midea AC device."""
 
     _FAN_CUSTOM = "custom"
 
     # Dictionaries to convert from Midea mode to HA mode
-    _OPERATIONAL_MODE_TO_HVAC_MODE: dict[AC.OperationalMode, HVACMode] = {
+    _OPERATIONAL_MODE_TO_HVAC_MODE: ClassVar[Mapping[AC.OperationalMode, HVACMode]] = {
         AC.OperationalMode.AUTO: HVACMode.AUTO,
         AC.OperationalMode.COOL: HVACMode.COOL,
         AC.OperationalMode.DRY: HVACMode.DRY,
@@ -313,7 +317,7 @@ class MideaClimateACDevice(MideaClimateDevice):
         AC.OperationalMode.FAN_ONLY: HVACMode.FAN_ONLY,
     }
 
-    _HVAC_MODE_TO_OPERATIONAL_MODE: dict[HVACMode, AC.OperationalMode] = {
+    _HVAC_MODE_TO_OPERATIONAL_MODE: ClassVar[Mapping[HVACMode, AC.OperationalMode]] = {
         HVACMode.COOL: AC.OperationalMode.COOL,
         HVACMode.HEAT: AC.OperationalMode.HEAT,
         HVACMode.FAN_ONLY: AC.OperationalMode.FAN_ONLY,
@@ -323,8 +327,8 @@ class MideaClimateACDevice(MideaClimateDevice):
 
     def __init__(self,
                  hass: HomeAssistant,
-                 coordinator: MideaDeviceUpdateCoordinator,
-                 options: dict
+                 coordinator: MideaDeviceUpdateCoordinator[AC],
+                 options: Mapping[str, Any]
                  ) -> None:
         """Initialize the climate device."""
         MideaClimateDevice.__init__(self, hass, coordinator, options)
@@ -570,7 +574,7 @@ class MideaClimateACDevice(MideaClimateDevice):
         await self._apply()
 
 
-class MideaClimateCCDevice(MideaClimateDevice):
+class MideaClimateCCDevice(MideaClimateDevice[CC]):
     """Climate entity for Midea CC device."""
 
     # Dictionaries to convert from Midea mode to HA mode
@@ -592,8 +596,8 @@ class MideaClimateCCDevice(MideaClimateDevice):
 
     def __init__(self,
                  hass: HomeAssistant,
-                 coordinator: MideaDeviceUpdateCoordinator,
-                 options: dict
+                 coordinator: MideaDeviceUpdateCoordinator[CC],
+                 options: Mapping[str, Any]
                  ) -> None:
         """Initialize the climate device."""
         MideaClimateDevice.__init__(self, hass, coordinator, options)
