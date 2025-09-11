@@ -80,7 +80,7 @@ class MideaDeviceUpdateCoordinator(DataUpdateCoordinator,  Generic[MideaDevice])
         self._device.enable_energy_usage_requests = self._energy_sensors > 0
 
 
-class MideaCoordinatorEntity(CoordinatorEntity, Generic[MideaDevice]):
+class MideaCoordinatorEntity(CoordinatorEntity[MideaDeviceUpdateCoordinator], Generic[MideaDevice]):
     """Coordinator entity for Midea Smart AC."""
 
     def __init__(self, coordinator: MideaDeviceUpdateCoordinator[MideaDevice]) -> None:
