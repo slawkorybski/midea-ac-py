@@ -18,6 +18,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import entity_platform
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from msmart.const import DeviceType
 from msmart.device import AirConditioner as AC
 from msmart.device import CommercialCooler as CC
 
@@ -42,19 +43,26 @@ async def async_setup_entry(
     # Fetch coordinator from global data
     coordinator = hass.data[DOMAIN][config_entry.entry_id]
 
-    add_entities([
-        MideaClimateACDevice(hass, coordinator, config_entry.options)
-    ])
+    entities = []
+    if coordinator.device.type == DeviceType.AIR_CONDITIONER:
+        entities.append(
+            MideaClimateACDevice(hass, coordinator, config_entry.options))
 
-    # Add a service to control 'follow me' function
-    platform = entity_platform.async_get_current_platform()
-    platform.async_register_entity_service(
-        "set_follow_me",
-        {
-            vol.Required(CONF_ENABLED): cv.boolean,
-        },
-        "async_set_follow_me",
-    )
+        # Add a service to control 'follow me' function
+        platform = entity_platform.async_get_current_platform()
+        platform.async_register_entity_service(
+            "set_follow_me",
+            {
+                vol.Required(CONF_ENABLED): cv.boolean,
+            },
+            "async_set_follow_me",
+        )
+
+    elif coordinator.device.type == DeviceType.COMMERCIAL_AC:
+        entities.append(
+            MideaClimateCCDevice(hass, coordinator, config_entry.options))
+
+    add_entities(entities)
 
 
 class MideaClimateDevice(MideaCoordinatorEntity, ClimateEntity):
