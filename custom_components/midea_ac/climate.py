@@ -354,6 +354,15 @@ class MideaClimateACDevice(MideaClimateDevice):
             if self._device.supports_ieco:
                 self._preset_modes.append(PRESET_IECO)
 
+        # Convert from Midea operational modes to HA HVAC mode
+        self._hvac_modes = [
+            self._OPERATIONAL_MODE_TO_HVAC_MODE[m]
+            for m in self._device.supported_operation_modes
+            # Don't include smart dry, we will try to automatically use this mode when supported
+            if m != AC.OperationalMode.SMART_DRY
+        ]
+        self._hvac_modes.append(HVACMode.OFF)
+
         # Append additional operation modes as needed
         additional_modes = workarounds.get(
             CONF_ADDITIONAL_OPERATION_MODES) or ""
@@ -376,7 +385,7 @@ class MideaClimateACDevice(MideaClimateDevice):
             self.hass.config.units.temperature_unit == UnitOfTemperature.FAHRENHEIT)
 
         # Apply via the coordinator
-        await super().apply()
+        await self.coordinator.apply()
 
     @property
     def assumed_state(self) -> bool:
