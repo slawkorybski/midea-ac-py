@@ -9,6 +9,7 @@ from homeassistant.helpers.debounce import Debouncer
 from homeassistant.helpers.update_coordinator import (CoordinatorEntity,
                                                       DataUpdateCoordinator)
 from msmart.device import AirConditioner as AC
+from msmart.device import CommercialCooler as CC
 
 from .const import DOMAIN, UPDATE_INTERVAL
 
@@ -18,7 +19,7 @@ _LOGGER = logging.getLogger(__name__)
 class MideaDeviceUpdateCoordinator(DataUpdateCoordinator):
     """Device update coordinator for Midea Smart AC."""
 
-    def __init__(self, hass: HomeAssistant, device: AC) -> None:
+    def __init__(self, hass: HomeAssistant, device: AC | CC) -> None:
         super().__init__(
             hass,
             _LOGGER,

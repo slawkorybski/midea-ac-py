@@ -21,6 +21,7 @@ CONF_DEFAULT_CLOUD_COUNTRY = "US"
 CONF_SWING_ANGLE_RTL = "swing_angle_rtl"
 
 PRESET_IECO = "ieco"
+PRESET_SILENT = "silent"
 
 
 class EnergyFormat(StrEnum):
