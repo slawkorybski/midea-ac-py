@@ -558,7 +558,7 @@ class MideaClimateCCDevice(MideaClimateDevice):
 
     # Dictionaries to convert from Midea mode to HA mode
     _OPERATIONAL_MODE_TO_HVAC_MODE: dict[CC.OperationalMode, HVACMode] = {
-        CC.OperationalMode.AUTO: HVACMode.AUTO,
+        # CC.OperationalMode.AUTO: HVACMode.AUTO,
         CC.OperationalMode.COOL: HVACMode.COOL,
         CC.OperationalMode.DRY: HVACMode.DRY,
         CC.OperationalMode.HEAT: HVACMode.HEAT,
@@ -568,9 +568,9 @@ class MideaClimateCCDevice(MideaClimateDevice):
     _HVAC_MODE_TO_OPERATIONAL_MODE: dict[HVACMode, CC.OperationalMode] = {
         HVACMode.COOL: CC.OperationalMode.COOL,
         HVACMode.HEAT: CC.OperationalMode.HEAT,
-        HVACMode.FAN_ONLY: CC.OperationalMode.FAN_ONLY,
+        HVACMode.FAN_ONLY: CC.OperationalMode.FAN,
         HVACMode.DRY: CC.OperationalMode.DRY,
-        HVACMode.AUTO: CC.OperationalMode.AUTO,
+        # HVACMode.AUTO: CC.OperationalMode.AUTO,
     }
 
     def __init__(self,
