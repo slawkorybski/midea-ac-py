@@ -2,7 +2,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Generic, Mapping, ClassVar
+from dataclasses import dataclass
+from typing import Any, ClassVar, Generic, Mapping, Sequence
 
 import voluptuous as vol
 from homeassistant.components.climate import ClimateEntity
@@ -22,6 +23,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from msmart.const import DeviceType
 from msmart.device import AirConditioner as AC
 from msmart.device import CommercialCooler as CC
+from msmart.utils import MideaIntEnum
 
 from .const import (CONF_ADDITIONAL_OPERATION_MODES, CONF_BEEP,
                     CONF_SHOW_ALL_PRESETS, CONF_TEMP_STEP,
@@ -66,19 +68,30 @@ async def async_setup_entry(
     add_entities(entities)
 
 
+@dataclass
+class ClimateConfig:
+    temperature_step: float
+    min_target_temperature: float
+    max_target_temperature: float
+    supported_operation_modes: Sequence[MideaIntEnum]
+    supported_fan_speeds: Sequence[MideaIntEnum] | None = None
+    supported_swing_modes: Sequence[MideaIntEnum] | None = None
+    supported_preset_modes: Sequence[str] | None = None
+
+
 class MideaClimateDevice(MideaCoordinatorEntity[MideaDevice], ClimateEntity, Generic[MideaDevice]):
     """Base climate entity for Midea devices."""
 
     _attr_translation_key = DOMAIN
     _enable_turn_on_off_backwards_compatibility = False
 
-    _OPERATIONAL_MODE_TO_HVAC_MODE: ClassVar[Mapping[Any ,HVACMode]]
+    _OPERATIONAL_MODE_TO_HVAC_MODE: ClassVar[Mapping[Any, HVACMode]]
     _HVAC_MODE_TO_OPERATIONAL_MODE: ClassVar[Mapping[HVACMode, Any]]
 
     def __init__(self,
                  hass: HomeAssistant,
                  coordinator: MideaDeviceUpdateCoordinator[MideaDevice],
-                 options: Mapping[str, Any]
+                 config: ClimateConfig
                  ) -> None:
         """Initialize the climate device."""
         MideaCoordinatorEntity.__init__(self, coordinator)
@@ -88,14 +101,14 @@ class MideaClimateDevice(MideaCoordinatorEntity[MideaDevice], ClimateEntity, Gen
         # Save device class
         self._device_class = type(self._device)
 
-        # Apply options
-        self._target_temperature_step = options.get(CONF_TEMP_STEP)
+        # Set temperature config
+        self._target_temperature_step = config.temperature_step
+        self._min_temperature = config.min_target_temperature
+        self._max_temperature = config.max_target_temperature
 
         # Setup default supported features
         self._supported_features = (
-            ClimateEntityFeature.TARGET_TEMPERATURE |
-            ClimateEntityFeature.FAN_MODE |
-            ClimateEntityFeature.PRESET_MODE
+            ClimateEntityFeature.TARGET_TEMPERATURE
         )
 
         # Attempt to add new TURN_OFF/TURN_ON features in HA 2024.2
@@ -108,32 +121,38 @@ class MideaClimateDevice(MideaCoordinatorEntity[MideaDevice], ClimateEntity, Gen
         # Convert from Midea operational modes to HA HVAC mode
         self._hvac_modes = [
             self._OPERATIONAL_MODE_TO_HVAC_MODE[m]
-            for m in self._device.supported_operation_modes
+            for m in config.supported_operation_modes
         ]
         self._hvac_modes.append(HVACMode.OFF)
 
-        # Convert fan speeds to strings
-        self._fan_modes = [m.name.lower()
-                           for m in self._device.supported_fan_speeds]
+        if config.supported_fan_speeds:
+            self._supported_features |= ClimateEntityFeature.FAN_MODE
+
+            # Convert fan speeds to strings
+            self._fan_modes = [m.name.lower()
+                               for m in config.supported_fan_speeds]
+
+        if config.supported_preset_modes:
+            self._supported_features |= ClimateEntityFeature.PRESET_MODE
+
+            # Store supported preset modes
+            self._preset_modes = config.supported_preset_modes
 
         # If device supports any swing mode, add it to supported features
-        if self._device.supported_swing_modes != [self._device_class.SwingMode.OFF]:
+        if config.supported_swing_modes and config.supported_swing_modes != [self._device_class.SwingMode.OFF]:
             self._supported_features |= ClimateEntityFeature.SWING_MODE
 
-        # Convert Midea swing modes to strings
-        self._swing_modes = [m.name.lower()
-                             for m in self._device.supported_swing_modes]
+            # Convert Midea swing modes to strings
+            self._swing_modes = [m.name.lower()
+                                 for m in config.supported_swing_modes]
 
         # Dump all supported modes for debug
-        _LOGGER.debug("Supported operational modes: '%s'.",
-                      self._hvac_modes)
+        _LOGGER.debug("Supported operational modes: '%s'.", self._hvac_modes)
         _LOGGER.debug("Supported preset modes: '%s'.", self._preset_modes)
         _LOGGER.debug("Supported fan modes: '%s'.", self._fan_modes)
         _LOGGER.debug("Supported swing modes: '%s'.", self._swing_modes)
-
-        # Set min and max temperatures
-        self._min_temperature = self._device.min_target_temperature
-        self._max_temperature = self._device.max_target_temperature
+        _LOGGER.debug("Target temperature step: %f, min: %f, max: %f.",
+                      self._target_temperature_step, self._min_temperature, self._max_temperature)
 
     async def _apply(self) -> None:
         """Apply changes to the device."""
@@ -173,14 +192,14 @@ class MideaClimateDevice(MideaCoordinatorEntity[MideaDevice], ClimateEntity, Gen
         return self._supported_features
 
     @property
-    def target_temperature_step(self) -> float | None:
-        """Return the supported target temperature step."""
-        return self._target_temperature_step
-
-    @property
     def temperature_unit(self) -> str:
         """Return the unit of measurement."""
         return UnitOfTemperature.CELSIUS
+
+    @property
+    def target_temperature_step(self) -> float | None:
+        """Return the supported target temperature step."""
+        return self._target_temperature_step
 
     @property
     def min_temp(self) -> float:
@@ -277,7 +296,7 @@ class MideaClimateDevice(MideaCoordinatorEntity[MideaDevice], ClimateEntity, Gen
 
     @property
     def preset_modes(self) -> list[str]:
-        """Return the supported preset modes."""
+        """Return the supported preset modes for the current operation mode."""
         return self._preset_modes
 
     @property
@@ -331,49 +350,47 @@ class MideaClimateACDevice(MideaClimateDevice[AC]):
                  options: Mapping[str, Any]
                  ) -> None:
         """Initialize the climate device."""
-        MideaClimateDevice.__init__(self, hass, coordinator, options)
 
-        # Apply options
-        self._device.beep = options.get(CONF_BEEP, False)
+        device = coordinator.device
 
         # Get workarounds
         workarounds = options.get(CONF_WORKAROUNDS, {})
+
+        # Get supported preset list
+        all_presets = workarounds.get(CONF_SHOW_ALL_PRESETS, False)
+        preset_modes = [
+            p for p, cond in [
+                (PRESET_NONE, True),  # Always supported
+                (PRESET_SLEEP, True),  # Always supported
+                (PRESET_AWAY, device.supports_freeze_protection or all_presets),
+                (PRESET_ECO, device.supports_eco or all_presets),
+                (PRESET_BOOST, device.supports_turbo or all_presets),
+                # Only show iECO if device truly supports it
+                (PRESET_IECO, device.supports_ieco),
+            ] if cond
+        ]
+
+        # Get supported operational modes without smart dry
+        operation_modes = [
+            m for m in device.supported_operation_modes if m != AC.OperationalMode.SMART_DRY]
+
+        config = ClimateConfig(
+            temperature_step=options.get(CONF_TEMP_STEP, 1.0),
+            min_target_temperature=device.min_target_temperature,
+            max_target_temperature=device.max_target_temperature,
+            supported_operation_modes=operation_modes,
+            supported_fan_speeds=device.supported_fan_speeds,
+            supported_swing_modes=device.supported_swing_modes,
+            supported_preset_modes=preset_modes,
+        )
+
+        MideaClimateDevice.__init__(self, hass, coordinator, config)
+
+        # Apply misc options
+        self._device.beep = options.get(CONF_BEEP, False)
+
         self._use_fan_only_workaround = workarounds.get(
             CONF_USE_FAN_ONLY_WORKAROUND, False)
-
-        # Setup supported presets
-        if workarounds.get(CONF_SHOW_ALL_PRESETS, False):
-            # Add all presets
-            self._preset_modes = [PRESET_NONE, PRESET_SLEEP, PRESET_AWAY,
-                                  PRESET_ECO, PRESET_BOOST]
-        else:
-            # Get supported preset list
-            self._preset_modes = [
-                PRESET_NONE,
-                PRESET_SLEEP
-            ]
-
-            # Only add presets supported by device
-            if self._device.supports_freeze_protection:
-                self._preset_modes.append(PRESET_AWAY)
-
-            if self._device.supports_eco:
-                self._preset_modes.append(PRESET_ECO)
-
-            if self._device.supports_turbo:
-                self._preset_modes.append(PRESET_BOOST)
-
-            if self._device.supports_ieco:
-                self._preset_modes.append(PRESET_IECO)
-
-        # Convert from Midea operational modes to HA HVAC mode
-        self._hvac_modes = [
-            self._OPERATIONAL_MODE_TO_HVAC_MODE[m]
-            for m in self._device.supported_operation_modes
-            # Don't include smart dry, we will try to automatically use this mode when supported
-            if m != AC.OperationalMode.SMART_DRY
-        ]
-        self._hvac_modes.append(HVACMode.OFF)
 
         # Append additional operation modes as needed
         additional_modes = workarounds.get(
@@ -383,16 +400,10 @@ class MideaClimateACDevice(MideaClimateDevice[AC]):
                 _LOGGER.info("Adding additional mode '%s'.", mode)
                 self._hvac_modes.append(mode)
 
-        # Dump all supported modes for debug
-        _LOGGER.debug("Supported operational modes: '%s'.", self._hvac_modes)
-        _LOGGER.debug("Supported preset modes: '%s'.", self._preset_modes)
-        _LOGGER.debug("Supported fan modes: '%s'.", self._fan_modes)
-        _LOGGER.debug("Supported swing modes: '%s'.", self._swing_modes)
-
     async def _apply(self) -> None:
         """Apply changes to the device."""
 
-        # Display on the AC should use the same unit as homeassistant
+        # Display on the AC should use the same unit as HA
         self._device.fahrenheit = (
             self.hass.config.units.temperature_unit == UnitOfTemperature.FAHRENHEIT)
 
@@ -514,7 +525,7 @@ class MideaClimateACDevice(MideaClimateDevice[AC]):
 
     @property
     def preset_modes(self) -> list[str]:
-        """Return the supported preset modes."""
+        """Return the supported preset modes for the current operation mode."""
         modes = [PRESET_NONE]
 
         # Add away preset in heat if supported
@@ -578,7 +589,7 @@ class MideaClimateCCDevice(MideaClimateDevice[CC]):
     """Climate entity for Midea CC device."""
 
     # Dictionaries to convert from Midea mode to HA mode
-    _OPERATIONAL_MODE_TO_HVAC_MODE: dict[CC.OperationalMode, HVACMode] = {
+    _OPERATIONAL_MODE_TO_HVAC_MODE: ClassVar[Mapping[CC.OperationalMode, HVACMode]] = {
         # CC.OperationalMode.AUTO: HVACMode.AUTO,
         CC.OperationalMode.COOL: HVACMode.COOL,
         CC.OperationalMode.DRY: HVACMode.DRY,
@@ -586,7 +597,7 @@ class MideaClimateCCDevice(MideaClimateDevice[CC]):
         CC.OperationalMode.FAN: HVACMode.FAN_ONLY,
     }
 
-    _HVAC_MODE_TO_OPERATIONAL_MODE: dict[HVACMode, CC.OperationalMode] = {
+    _HVAC_MODE_TO_OPERATIONAL_MODE: ClassVar[Mapping[HVACMode, CC.OperationalMode]] = {
         HVACMode.COOL: CC.OperationalMode.COOL,
         HVACMode.HEAT: CC.OperationalMode.HEAT,
         HVACMode.FAN_ONLY: CC.OperationalMode.FAN,
@@ -600,51 +611,27 @@ class MideaClimateCCDevice(MideaClimateDevice[CC]):
                  options: Mapping[str, Any]
                  ) -> None:
         """Initialize the climate device."""
-        MideaClimateDevice.__init__(self, hass, coordinator, options)
+        device = coordinator.device
 
-        self.hass = hass
-
-        # Setup supported presets
-        self._preset_modes = [
+        # Get supported preset list
+        preset_modes = [
             PRESET_NONE,
             PRESET_ECO,
             PRESET_SLEEP,
             PRESET_SILENT,
         ]
 
-        # Convert from Midea operational modes to HA HVAC mode
-        self._hvac_modes = [
-            self._OPERATIONAL_MODE_TO_HVAC_MODE[m]
-            for m in self._device.supported_operation_modes
-        ]
-        self._hvac_modes.append(HVACMode.OFF)
+        config = ClimateConfig(
+            temperature_step=options.get(CONF_TEMP_STEP, 1.0),
+            min_target_temperature=device.min_target_temperature,
+            max_target_temperature=device.max_target_temperature,
+            supported_operation_modes=device.supported_operation_modes,
+            supported_fan_speeds=device.supported_fan_speeds,
+            supported_swing_modes=device.supported_swing_modes,
+            supported_preset_modes=preset_modes,
+        )
 
-        # Convert fan speeds to strings
-        self._fan_modes = [m.name.lower()
-                           for m in self._device.supported_fan_speeds]
-
-        # If device supports any swing mode, add it to supported features
-        if self._device.supported_swing_modes != [CC.SwingMode.OFF]:
-            self._supported_features |= ClimateEntityFeature.SWING_MODE
-
-        # Convert Midea swing modes to strings
-        self._swing_modes = [m.name.lower()
-                             for m in self._device.supported_swing_modes]
-
-        # Dump all supported modes for debug
-        _LOGGER.debug("Supported operational modes: '%s'.", self._hvac_modes)
-        _LOGGER.debug("Supported preset modes: '%s'.", self._preset_modes)
-        _LOGGER.debug("Supported fan modes: '%s'.", self._fan_modes)
-        _LOGGER.debug("Supported swing modes: '%s'.", self._swing_modes)
-
-        # Set min and max temperatures
-        self._min_temperature = self._device.min_target_temperature
-        self._max_temperature = self._device.max_target_temperature
-
-    @property
-    def preset_modes(self) -> list[str]:
-        """Return the supported preset modes."""
-        return self._preset_modes
+        MideaClimateDevice.__init__(self, hass, coordinator, config)
 
     @property
     def preset_mode(self) -> str:
