@@ -157,6 +157,10 @@ class MideaClimateDevice(MideaCoordinatorEntity[MideaDevice], ClimateEntity, Gen
 
     async def _apply(self) -> None:
         """Apply changes to the device."""
+        # Display on the AC should use the same unit as HA
+        self._device.fahrenheit = (
+            self.hass.config.units.temperature_unit == UnitOfTemperature.FAHRENHEIT)
+
         # Apply via the coordinator
         await self.coordinator.apply()
 
@@ -233,6 +237,21 @@ class MideaClimateDevice(MideaCoordinatorEntity[MideaDevice], ClimateEntity, Gen
 
         if (mode := kwargs.get(ATTR_HVAC_MODE, None)) is not None:
             await self.async_set_hvac_mode(mode)
+
+    @property
+    def current_humidity(self) -> float | None:
+        """Return the current humidity."""
+        return self._device.indoor_humidity
+
+    @property
+    def target_humidity(self) -> float | None:
+        """Return the current target humidity."""
+        return self._device.target_humidity
+
+    async def async_set_humidity(self, humidity) -> None:
+        """Set a new target humidity."""
+        self._device.target_humidity = int(humidity)
+        await self._apply()
 
     @property
     def swing_modes(self) -> list[str]:
@@ -401,16 +420,6 @@ class MideaClimateACDevice(MideaClimateDevice[AC]):
                 _LOGGER.info("Adding additional mode '%s'.", mode)
                 self._hvac_modes.append(mode)
 
-    async def _apply(self) -> None:
-        """Apply changes to the device."""
-
-        # Display on the AC should use the same unit as HA
-        self._device.fahrenheit = (
-            self.hass.config.units.temperature_unit == UnitOfTemperature.FAHRENHEIT)
-
-        # Apply via the coordinator
-        await self.coordinator.apply()
-
     @property
     def assumed_state(self) -> bool:
         """Assume state rather than refresh to workaround fan_only bug."""
@@ -444,21 +453,6 @@ class MideaClimateACDevice(MideaClimateDevice[AC]):
             return self._supported_features | ClimateEntityFeature.TARGET_HUMIDITY
 
         return self._supported_features
-
-    @property
-    def current_humidity(self) -> float | None:
-        """Return the current humidity."""
-        return self._device.indoor_humidity
-
-    @property
-    def target_humidity(self) -> float | None:
-        """Return the current target humidity."""
-        return self._device.target_humidity
-
-    async def async_set_humidity(self, humidity) -> None:
-        """Set a new target humidity."""
-        self._device.target_humidity = int(humidity)
-        await self._apply()
 
     @property
     def fan_modes(self) -> list[str]:
@@ -591,7 +585,7 @@ class MideaClimateCCDevice(MideaClimateDevice[CC]):
 
     # Dictionaries to convert from Midea mode to HA mode
     _OPERATIONAL_MODE_TO_HVAC_MODE: ClassVar[Mapping[CC.OperationalMode, HVACMode]] = {
-        # CC.OperationalMode.AUTO: HVACMode.AUTO,
+        CC.OperationalMode.AUTO: HVACMode.AUTO,
         CC.OperationalMode.COOL: HVACMode.COOL,
         CC.OperationalMode.DRY: HVACMode.DRY,
         CC.OperationalMode.HEAT: HVACMode.HEAT,
@@ -603,7 +597,7 @@ class MideaClimateCCDevice(MideaClimateDevice[CC]):
         HVACMode.HEAT: CC.OperationalMode.HEAT,
         HVACMode.FAN_ONLY: CC.OperationalMode.FAN,
         HVACMode.DRY: CC.OperationalMode.DRY,
-        # HVACMode.AUTO: CC.OperationalMode.AUTO,
+        HVACMode.AUTO: CC.OperationalMode.AUTO,
     }
 
     def __init__(self,
@@ -616,10 +610,12 @@ class MideaClimateCCDevice(MideaClimateDevice[CC]):
 
         # Get supported preset list
         preset_modes = [
-            PRESET_NONE,
-            PRESET_ECO,
-            PRESET_SLEEP,
-            PRESET_SILENT,
+            p for p, cond in [
+                (PRESET_NONE, True),  # Always supported
+                (PRESET_ECO, device.supports_eco),
+                (PRESET_SILENT, device.supports_silent),
+                (PRESET_SLEEP, device.supports_sleep),
+            ] if cond
         ]
 
         config = ClimateConfig(
@@ -635,14 +631,24 @@ class MideaClimateCCDevice(MideaClimateDevice[CC]):
         MideaClimateDevice.__init__(self, hass, coordinator, config)
 
     @property
+    def supported_features(self) -> int:
+        """Return the supported features."""
+        # Add target humidity if supported and in proper mode
+        # TODO unverified
+        if (self._device.supports_humidity and self._device.operational_mode in [CC.OperationalMode.DRY]):
+            return self._supported_features | ClimateEntityFeature.TARGET_HUMIDITY
+
+        return self._supported_features
+
+    @property
     def preset_mode(self) -> str:
         """Get the current preset mode."""
         if self._device.eco:
             return PRESET_ECO
-        elif self._device.sleep:
-            return PRESET_SLEEP
         elif self._device.silent:
             return PRESET_SILENT
+        elif self._device.sleep:
+            return PRESET_SLEEP
         else:
             return PRESET_NONE
 
@@ -650,7 +656,7 @@ class MideaClimateCCDevice(MideaClimateDevice[CC]):
         """Set the preset mode."""
         # Enable proper mode
         self._device.eco = preset_mode == PRESET_ECO
-        self._device.sleep = preset_mode == PRESET_SLEEP
         self._device.silent = preset_mode == PRESET_SILENT
+        self._device.sleep = preset_mode == PRESET_SLEEP
 
         await self._apply()
