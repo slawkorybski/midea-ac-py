@@ -24,6 +24,7 @@ from homeassistant.helpers.selector import (CountrySelector,
                                             TextSelectorType)
 from msmart.const import DeviceType
 from msmart.device import AirConditioner as AC
+from msmart.device import CommercialAirConditioner as CC
 from msmart.discover import CloudError, Discover
 from msmart.lan import AuthenticationError
 
@@ -105,7 +106,7 @@ class MideaConfigFlow(ConfigFlow, domain=DOMAIN):
 
             if device is None:
                 errors["base"] = "device_not_found"
-            elif device.type != DeviceType.AIR_CONDITIONER:
+            elif device.type not in [DeviceType.AIR_CONDITIONER, DeviceType.COMMERCIAL_AC]:
                 errors["base"] = "unsupported_device"
             else:
                 # Check if device has already been configured
@@ -115,7 +116,8 @@ class MideaConfigFlow(ConfigFlow, domain=DOMAIN):
                 # Finish connection
                 try:
                     if await Discover.connect(device):
-                        return await self.async_step_show_token_key(device=cast(AC, device))
+                        assert isinstance(device, (AC, CC))
+                        return await self.async_step_show_token_key(device=device)
                     else:
                         # Indicate a connection could not be made
                         return self.async_abort(reason="cannot_connect")
@@ -161,7 +163,8 @@ class MideaConfigFlow(ConfigFlow, domain=DOMAIN):
                 # Finish connection
                 try:
                     if await Discover.connect(device):
-                        return await self.async_step_show_token_key(device=cast(AC, device))
+                        assert isinstance(device, (AC, CC))
+                        return await self.async_step_show_token_key(device=device)
                     else:
                         # Indicate a connection could not be made
                         return self.async_abort(reason="cannot_connect")
@@ -193,7 +196,7 @@ class MideaConfigFlow(ConfigFlow, domain=DOMAIN):
             )
             for device in self._discovered_devices
             if (str(device.id) not in configured_devices and
-                device.type == DeviceType.AIR_CONDITIONER)
+                device.type in [DeviceType.AIR_CONDITIONER, DeviceType.COMMERCIAL_AC])
         }
 
         # Check if there is at least one device
@@ -212,7 +215,7 @@ class MideaConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_show_token_key(
         self, user_input: dict[str, Any] | None = None,
         *,
-        device: Optional[AC] = None
+        device: Optional[AC | CC] = None
     ) -> ConfigFlowResult:
         """Handle the show token step of config flow."""
 
