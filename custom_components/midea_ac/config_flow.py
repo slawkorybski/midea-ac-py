@@ -22,6 +22,7 @@ from homeassistant.helpers.selector import (CountrySelector,
                                             SelectSelectorMode, TextSelector,
                                             TextSelectorConfig,
                                             TextSelectorType)
+from msmart.base_device import Device
 from msmart.const import DeviceType
 from msmart.device import AirConditioner as AC
 from msmart.device import CommercialAirConditioner as CC
@@ -30,8 +31,9 @@ from msmart.lan import AuthenticationError
 
 from .const import (CONF_ADDITIONAL_OPERATION_MODES, CONF_BEEP,
                     CONF_CLOUD_COUNTRY_CODES, CONF_DEFAULT_CLOUD_COUNTRY,
-                    CONF_ENERGY_DATA_FORMAT, CONF_ENERGY_DATA_SCALE,
-                    CONF_ENERGY_SENSOR, CONF_FAN_SPEED_STEP, CONF_KEY,
+                    CONF_DEVICE_TYPE, CONF_ENERGY_DATA_FORMAT,
+                    CONF_ENERGY_DATA_SCALE, CONF_ENERGY_SENSOR,
+                    CONF_FAN_SPEED_STEP, CONF_KEY,
                     CONF_MAX_CONNECTION_LIFETIME, CONF_POWER_SENSOR,
                     CONF_SHOW_ALL_PRESETS, CONF_SWING_ANGLE_RTL,
                     CONF_TEMP_STEP, CONF_USE_FAN_ONLY_WORKAROUND,
@@ -68,7 +70,7 @@ class MideaConfigFlow(ConfigFlow, domain=DOMAIN):
     """Config flow for Midea Smart AC."""
 
     VERSION = 1
-    MINOR_VERSION = 4
+    MINOR_VERSION = 5
 
     async def async_step_user(self, user_input=None) -> ConfigFlowResult:
         """Handle a config flow initialized by the user."""
@@ -284,6 +286,14 @@ class MideaConfigFlow(ConfigFlow, domain=DOMAIN):
                 vol.Required(CONF_ID): cv.string,
                 vol.Required(CONF_HOST): cv.string,
                 vol.Required(CONF_PORT, default=6444): cv.port,
+                vol.Required(CONF_DEVICE_TYPE): SelectSelector(
+                    SelectSelectorConfig(
+                        options=[f"{e.value:X}" for e in
+                                 [DeviceType.AIR_CONDITIONER, DeviceType.COMMERCIAL_AC]],
+                        translation_key="device_type",
+                        mode=SelectSelectorMode.DROPDOWN,
+                    ),
+                ),
                 vol.Optional(CONF_TOKEN): TextSelector(TextSelectorConfig(type=TextSelectorType.TEXT)),
                 vol.Optional(CONF_KEY): cv.string
             }), user_input)
@@ -349,12 +359,22 @@ class MideaConfigFlow(ConfigFlow, domain=DOMAIN):
         """Create an httpx AsyncClient in a HA friendly way."""
         return httpx_client.get_async_client(self.hass, *args, **kwargs)
 
-    async def _test_manual_connection(self, config) -> Optional[AC]:
+    async def _test_manual_connection(self, config) -> Optional[AC | CC]:
+        DEVICE_TYPES = {
+            "AC": DeviceType.AIR_CONDITIONER,
+            "CC": DeviceType.COMMERCIAL_AC
+        }
+
         # Construct the device
-        id = config.get(CONF_ID)
-        host = config.get(CONF_HOST)
-        port = config.get(CONF_PORT)
-        device = AC(ip=host, port=port, device_id=int(id))
+        device = Device.construct(
+            type=DEVICE_TYPES[config.get(CONF_DEVICE_TYPE).upper()],
+            ip=config.get(CONF_HOST),
+            port=config.get(CONF_PORT),
+            device_id=int(config.get(CONF_ID)),
+        )
+
+        # Ensure device is a supported type
+        assert isinstance(device, (AC, CC))
 
         # Configure token and key as needed
         token = config.get(CONF_TOKEN)
@@ -377,6 +397,7 @@ class MideaConfigFlow(ConfigFlow, domain=DOMAIN):
 
         # Populate config data
         data = {
+            CONF_DEVICE_TYPE: device.type,
             CONF_ID: device.id,
             CONF_HOST: device.ip,
             CONF_PORT: device.port,
