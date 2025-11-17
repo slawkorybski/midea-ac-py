@@ -9,7 +9,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.debounce import Debouncer
 from homeassistant.helpers.update_coordinator import (CoordinatorEntity,
                                                       DataUpdateCoordinator)
-from msmart.device import CommercialCooler as CC
 
 from .const import DOMAIN, UPDATE_INTERVAL, MideaDevice
 
@@ -60,8 +59,8 @@ class MideaDeviceUpdateCoordinator(DataUpdateCoordinator,  Generic[MideaDevice])
     def register_energy_sensor(self) -> None:
         """Record that an energy sensor is active."""
 
-        if isinstance(self._device, CC):
-            raise TypeError("CC device does not support energy sensors.")
+        if not hasattr(self._device, "enable_energy_usage_requests"):
+            raise TypeError("Device does not support energy sensors.")
 
         self._energy_sensors += 1
 
@@ -71,8 +70,8 @@ class MideaDeviceUpdateCoordinator(DataUpdateCoordinator,  Generic[MideaDevice])
     def unregister_energy_sensor(self) -> None:
         """Record that an energy sensor is inactive."""
 
-        if isinstance(self._device, CC):
-            raise TypeError("CC device does not support energy sensors.")
+        if not hasattr(self._device, "enable_energy_usage_requests"):
+            raise TypeError("Device does not support energy sensors.")
 
         self._energy_sensors -= 1
 

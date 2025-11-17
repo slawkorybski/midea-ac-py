@@ -27,34 +27,35 @@ async def async_setup_entry(
 
     # Fetch coordinator from global data
     coordinator = hass.data[DOMAIN][config_entry.entry_id]
+    device = coordinator.device
 
-    # Add supported switch entities
-    entities = [
+    # Create switches for supported features
+    entities = []
+    if hasattr(device, "toggle_display"):
         # TODO Check supports_display_control ?
-        MideaDisplaySwitch(coordinator)
-    ]
+        entities.append(MideaDisplaySwitch(coordinator))
 
-    if coordinator.device.supports_breeze_away:
+    if hasattr(device, "breeze_away") and getattr(device, "supports_breeze_away", False):
         entities.append(MideaSwitch(coordinator,
                                     "breeze_away",
                                     "breeze_away"))
 
-    if coordinator.device.supports_breeze_mild:
+    if hasattr(device, "breeze_mild") and getattr(device, "supports_breeze_mild_away", False):
         entities.append(MideaSwitch(coordinator,
                                     "breeze_mild",
                                     "breeze_mild"))
 
-    if coordinator.device.supports_breezeless:
+    if hasattr(device, "breezeless") and getattr(device, "supports_breezeless", False):
         entities.append(MideaSwitch(coordinator,
                                     "breezeless",
                                     "breezeless"))
 
-    if coordinator.device.supports_flash_cool:
+    if hasattr(device, "flash_cool") and getattr(device, "supports_flash_cool", False):
         entities.append(MideaSwitch(coordinator,
                                     "flash_cool",
                                     "flash_cool"))
 
-    if coordinator.device.supports_purifier:
+    if hasattr(device, "purifier") and getattr(device, "supports_purifier", False):
         entities.append(MideaSwitch(coordinator,
                                     "purifier",
                                     "purifier",

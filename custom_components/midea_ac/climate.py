@@ -22,7 +22,7 @@ from homeassistant.helpers import entity_platform
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from msmart.const import DeviceType
 from msmart.device import AirConditioner as AC
-from msmart.device import CommercialCooler as CC
+from msmart.device import CommercialAirConditioner as CC
 from msmart.utils import MideaIntEnum
 
 from .const import (CONF_ADDITIONAL_OPERATION_MODES, CONF_BEEP,
@@ -45,9 +45,10 @@ async def async_setup_entry(
 
     # Fetch coordinator from global data
     coordinator = hass.data[DOMAIN][config_entry.entry_id]
+    device = coordinator.device
 
     entities = []
-    if coordinator.device.type == DeviceType.AIR_CONDITIONER:
+    if device.type == DeviceType.AIR_CONDITIONER:
         entities.append(
             MideaClimateACDevice(hass, coordinator, config_entry.options))
 
@@ -61,7 +62,7 @@ async def async_setup_entry(
             "async_set_follow_me",
         )
 
-    elif coordinator.device.type == DeviceType.COMMERCIAL_AC:
+    elif device.type == DeviceType.COMMERCIAL_AC:
         entities.append(
             MideaClimateCCDevice(hass, coordinator, config_entry.options))
 

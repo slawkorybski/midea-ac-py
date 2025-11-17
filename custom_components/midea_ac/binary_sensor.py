@@ -7,8 +7,8 @@ from typing import Optional
 from homeassistant.components.binary_sensor import (BinarySensorDeviceClass,
                                                     BinarySensorEntity)
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
@@ -28,17 +28,18 @@ async def async_setup_entry(
 
     # Fetch coordinator from global data
     coordinator = hass.data[DOMAIN][config_entry.entry_id]
+    device = coordinator.device
 
     # Create entities for supported features
     entities = []
-    if coordinator.device.supports_filter_reminder:
+    if hasattr(device, "filter_alert") and getattr(device, "supports_filter_reminder", False):
         entities.append(MideaBinarySensor(coordinator,
                                           "filter_alert",
                                           BinarySensorDeviceClass.PROBLEM,
                                           "filter_alert"
                                           ))
 
-    if coordinator.device.supports_self_clean:
+    if hasattr(device, "self_clean_active") and getattr(device, "supports_self_clean", False):
         entities.append(MideaBinarySensor(coordinator,
                                           "self_clean_active",
                                           BinarySensorDeviceClass.RUNNING,

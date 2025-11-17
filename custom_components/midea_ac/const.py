@@ -2,7 +2,7 @@ from enum import StrEnum, auto
 from typing import TypeVar
 
 from msmart.device import AirConditioner as AC
-from msmart.device import CommercialCooler as CC
+from msmart.device import CommercialAirConditioner as CC
 
 DOMAIN = "midea_ac"
 UPDATE_INTERVAL = 15
