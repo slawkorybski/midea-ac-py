@@ -12,7 +12,8 @@ from homeassistant.data_entry_flow import FlowResultType, InvalidData
 from msmart.lan import AuthenticationError
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.midea_ac.const import CONF_BEEP, CONF_KEY, DOMAIN
+from custom_components.midea_ac.const import (CONF_BEEP, CONF_DEVICE_TYPE,
+                                              CONF_KEY, DOMAIN)
 
 logging.basicConfig(level=logging.DEBUG)
 _LOGGER = logging.getLogger(__name__)
@@ -65,6 +66,12 @@ async def test_manual_flow(hass: HomeAssistant) -> None:
             CONF_HOST: "localhost",
             CONF_PORT: 6444,
             CONF_ID: None
+        },
+        {
+            CONF_HOST: "localhost",
+            CONF_PORT: 6444,
+            CONF_ID: "1234",
+            CONF_DEVICE_TYPE: None
         }
     ]
     for input in invalid_input:
@@ -84,7 +91,8 @@ async def test_manual_flow(hass: HomeAssistant) -> None:
             user_input={
                 CONF_HOST: "localhost",
                 CONF_PORT: 6444,
-                CONF_ID: "1234"
+                CONF_ID: "1234",
+                CONF_DEVICE_TYPE: "AC"
             }
         )
         assert result
@@ -106,8 +114,35 @@ async def test_manual_flow(hass: HomeAssistant) -> None:
                 CONF_PORT: 6444,
                 CONF_ID: "1234",
                 CONF_TOKEN: "1234",
-                CONF_KEY: "1234"
+                CONF_KEY: "1234",
+                CONF_DEVICE_TYPE: "AC"
 
+            }
+        )
+        assert result
+        # Authenticate should be called
+        authenticate_mock.assert_awaited_once()
+        # Refresh should be not called
+        refresh_mock.assert_not_awaited()
+        # Connection should fail
+        assert result["errors"] == {"base": "cannot_connect"}
+
+    # Check manual flow with CC device type
+    # TODO should be able to parameterize this and use a base class right?
+    with (patch("custom_components.midea_ac.config_flow.CC.refresh",
+                return_value=False) as refresh_mock,
+          patch("custom_components.midea_ac.config_flow.CC.authenticate",
+                side_effect=AuthenticationError) as authenticate_mock):
+        # Check manually configuring a V3 device
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={
+                CONF_HOST: "localhost",
+                CONF_PORT: 6444,
+                CONF_ID: "1234",
+                CONF_TOKEN: "1234",
+                CONF_KEY: "1234",
+                CONF_DEVICE_TYPE: "CC"
             }
         )
         assert result
@@ -126,7 +161,8 @@ async def test_manual_flow(hass: HomeAssistant) -> None:
             CONF_PORT: 6444,
             CONF_ID: "1234",
             CONF_TOKEN: "not_hex_string",
-            CONF_KEY: "also_not_hex"
+            CONF_KEY: "also_not_hex",
+            CONF_DEVICE_TYPE: "AC"
 
         }
     )
@@ -154,6 +190,7 @@ async def test_options_flow_init(hass: HomeAssistant) -> None:
             CONF_PORT: 6444,
             CONF_TOKEN: None,
             CONF_KEY: None,
+            CONF_DEVICE_TYPE: 0xAC
         }
     )
 
@@ -203,6 +240,7 @@ async def test_reconfigure_flow(hass: HomeAssistant) -> None:
             CONF_PORT: 6444,
             CONF_TOKEN: None,
             CONF_KEY: None,
+            CONF_DEVICE_TYPE: 0xAC
         }
     )
 
@@ -251,6 +289,7 @@ async def test_reconfigure_flow(hass: HomeAssistant) -> None:
             user_input={
                 CONF_HOST: "localhost",
                 CONF_PORT: 6444,
+                CONF_DEVICE_TYPE: "AC"
             }
         )
         assert result
@@ -271,8 +310,8 @@ async def test_reconfigure_flow(hass: HomeAssistant) -> None:
                 CONF_HOST: "localhost",
                 CONF_PORT: 6444,
                 CONF_TOKEN: "1234",
-                CONF_KEY: "1234"
-
+                CONF_KEY: "1234",
+                CONF_DEVICE_TYPE: "AC"
             }
         )
         assert result
@@ -290,8 +329,8 @@ async def test_reconfigure_flow(hass: HomeAssistant) -> None:
             CONF_HOST: "localhost",
             CONF_PORT: 6444,
             CONF_TOKEN: "not_hex_string",
-            CONF_KEY: "also_not_hex"
-
+            CONF_KEY: "also_not_hex",
+            CONF_DEVICE_TYPE: "AC"
         }
     )
     assert result

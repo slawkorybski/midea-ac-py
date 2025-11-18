@@ -345,6 +345,14 @@ class MideaConfigFlow(ConfigFlow, domain=DOMAIN):
             vol.Schema({
                 vol.Required(CONF_HOST): cv.string,
                 vol.Required(CONF_PORT, default=6444): cv.port,
+                vol.Required(CONF_DEVICE_TYPE): SelectSelector(
+                    SelectSelectorConfig(
+                        options=[f"{e.value:X}" for e in
+                                 [DeviceType.AIR_CONDITIONER, DeviceType.COMMERCIAL_AC]],
+                        translation_key="device_type",
+                        mode=SelectSelectorMode.DROPDOWN,
+                    ),
+                ),
                 vol.Optional(CONF_TOKEN): TextSelector(TextSelectorConfig(type=TextSelectorType.TEXT)),
                 vol.Optional(CONF_KEY): cv.string
             }), user_input)

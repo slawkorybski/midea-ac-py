@@ -11,7 +11,7 @@ from homeassistant.core import HomeAssistant
 from msmart.lan import _LanProtocol
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.midea_ac.const import CONF_KEY, DOMAIN
+from custom_components.midea_ac.const import CONF_DEVICE_TYPE, CONF_KEY, DOMAIN
 
 
 async def _setup_integration(hass: HomeAssistant) -> MockConfigEntry:
@@ -26,6 +26,7 @@ async def _setup_integration(hass: HomeAssistant) -> MockConfigEntry:
             CONF_PORT: 6444,
             CONF_TOKEN: None,
             CONF_KEY: None,
+            CONF_DEVICE_TYPE: 0xAC,
         }
     )
 
