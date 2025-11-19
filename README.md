@@ -17,19 +17,21 @@ A device is likely supported if it uses one of the following Android apps or it'
 * Toshiba AC NA (com.midea.toshiba)
 * 美的美居 (com.midea.ai.appliances)
 
-__Note: Only air conditioner devices (type 0xAC) are supported.__ 
+__Note: Only air conditioner devices (type 0xAC and 0xCC) are supported.__ 
 
 See [Getting Device Info](#getting-device-info) to determine if a device is supported.
 
 
-## Features
+## General Features
 * Automatic device discovery and configuration via the GUI.
 * Device capability detection. Only supported functions are displayed.
-* Support for sleep, eco, boost (turbo), and away (freeze protection) presets.
 * Minimum and maximum target temperatures provided by the device.
+
+### Device 0xAC Features
+* Support for sleep, eco, boost (turbo), and away (freeze protection) presets.
 * Switch for device display<sup>1</sup>.
 * Advanced controls (when supported by the device):
-  * Purifier (Ionizer/UV)
+  * Purifier (Ionizer/UV/Sterilizer)
   * Device filter alert
   * Custom fan speeds
   * Service to enable the "Follow Me" function<sup>2</sup>
@@ -50,6 +52,15 @@ See [Getting Device Info](#getting-device-info) to determine if a device is supp
 2. Experimental. "Follow Me" requires the IR remote to transmit temperature data. More info [here](https://github.com/mill1000/midea-msmart/pull/91).
 3. Sensors must be manually enabled on the device page. A device may not support all energy sensors.
 </small>
+
+### Device 0xCC Features
+* Support for eco, silent, and sleep presets.
+* Advanced controls (when supported by the device):
+  * Purifier (Ionizer/UV/Sterilizer)
+  * Swing angle (fan position)
+  * Indoor humidity sensor
+  * Target humidity in Dry mode
+  * Auxiliary heating mode
 
 ## Translations
 Thanks to the community the integration is available in the following languages.
@@ -119,6 +130,7 @@ Name | Description | Required | Example
 **ID** | Device ID | Yes | 123456789012345
 **Host** | Device IP address | Yes | 192.168.1.100
 **Port** | Device port | Yes | 6444
+**Device Tpye** | Device type | Yes | AC
 **Token** | Device token | For V3 devices | ACEDDA53831AE5DC... (128 character hexadecimal string)
 **Key** | Device key | For V3 devices | CFFA10FC... (64 character hexadecimal string)
 
