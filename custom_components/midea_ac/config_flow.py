@@ -318,9 +318,11 @@ class MideaConfigFlow(ConfigFlow, domain=DOMAIN):
                         errors[field] = "invalid_hex_format"
 
             if not errors:
-                # Copy ID from existing entry
                 config_entry = self._get_reconfigure_entry()
+
+                # Copy ID from existing entry
                 user_input[CONF_ID] = config_entry.data[CONF_ID]
+
                 # Convert type to hex representation
                 user_input[CONF_DEVICE_TYPE] = f"{config_entry.data[CONF_DEVICE_TYPE]:X}"
 
@@ -334,7 +336,14 @@ class MideaConfigFlow(ConfigFlow, domain=DOMAIN):
                 if device:
                     return self.async_update_reload_and_abort(
                         self._get_reconfigure_entry(),
-                        data_updates=user_input,
+                        data_updates={
+                            CONF_DEVICE_TYPE: device.type,
+                            CONF_ID: device.id,
+                            CONF_HOST: device.ip,
+                            CONF_PORT: device.port,
+                            CONF_TOKEN: device.token,
+                            CONF_KEY: device.key,
+                        },
                     )
 
                 # Indicate a connection could not be made
