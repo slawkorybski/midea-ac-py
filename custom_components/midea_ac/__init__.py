@@ -41,17 +41,17 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     # Ensure the global data dict exists
     hass.data.setdefault(DOMAIN, {})
 
-    type = config_entry.data[CONF_DEVICE_TYPE]
+    device_type = config_entry.data[CONF_DEVICE_TYPE]
     id = config_entry.data[CONF_ID]
     host = config_entry.data[CONF_HOST]
     port = config_entry.data[CONF_PORT]
 
     _LOGGER.info("Starting midea-ac-py for device type %02X ID %s (%s:%d). Using msmart-ng version %s.",
-                 type, id, host, port, MSMART_VERISON)
+                 device_type, id, host, port, MSMART_VERISON)
 
     # Construct the device
     device = Device.construct(
-        type=type,
+        type=device_type,
         ip=host,
         port=port,
         device_id=int(id)
