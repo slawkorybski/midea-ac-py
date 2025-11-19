@@ -289,7 +289,6 @@ async def test_reconfigure_flow(hass: HomeAssistant) -> None:
             user_input={
                 CONF_HOST: "localhost",
                 CONF_PORT: 6444,
-                CONF_DEVICE_TYPE: "AC"
             }
         )
         assert result
@@ -311,7 +310,6 @@ async def test_reconfigure_flow(hass: HomeAssistant) -> None:
                 CONF_PORT: 6444,
                 CONF_TOKEN: "1234",
                 CONF_KEY: "1234",
-                CONF_DEVICE_TYPE: "AC"
             }
         )
         assert result
@@ -330,7 +328,6 @@ async def test_reconfigure_flow(hass: HomeAssistant) -> None:
             CONF_PORT: 6444,
             CONF_TOKEN: "not_hex_string",
             CONF_KEY: "also_not_hex",
-            CONF_DEVICE_TYPE: "AC"
         }
     )
     assert result

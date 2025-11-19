@@ -321,6 +321,8 @@ class MideaConfigFlow(ConfigFlow, domain=DOMAIN):
                 # Copy ID from existing entry
                 config_entry = self._get_reconfigure_entry()
                 user_input[CONF_ID] = config_entry.data[CONF_ID]
+                # Convert type to hex representation
+                user_input[CONF_DEVICE_TYPE] = f"{config_entry.data[CONF_DEVICE_TYPE]:X}"
 
                 # Ensure key & token are in dict
                 user_input.setdefault(CONF_KEY, None)
@@ -345,14 +347,6 @@ class MideaConfigFlow(ConfigFlow, domain=DOMAIN):
             vol.Schema({
                 vol.Required(CONF_HOST): cv.string,
                 vol.Required(CONF_PORT, default=6444): cv.port,
-                vol.Required(CONF_DEVICE_TYPE): SelectSelector(
-                    SelectSelectorConfig(
-                        options=[f"{e.value:X}" for e in
-                                 [DeviceType.AIR_CONDITIONER, DeviceType.COMMERCIAL_AC]],
-                        translation_key="device_type",
-                        mode=SelectSelectorMode.DROPDOWN,
-                    ),
-                ),
                 vol.Optional(CONF_TOKEN): TextSelector(TextSelectorConfig(type=TextSelectorType.TEXT)),
                 vol.Optional(CONF_KEY): cv.string
             }), user_input)
