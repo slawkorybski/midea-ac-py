@@ -370,7 +370,7 @@ class MideaConfigFlow(ConfigFlow, domain=DOMAIN):
         """Create an httpx AsyncClient in a HA friendly way."""
         return httpx_client.get_async_client(self.hass, *args, **kwargs)
 
-    async def _test_manual_connection(self, config) ->  AC | CC | None:
+    async def _test_manual_connection(self, config) -> AC | CC | None:
         DEVICE_TYPES = {
             "AC": DeviceType.AIR_CONDITIONER,
             "CC": DeviceType.COMMERCIAL_AC
