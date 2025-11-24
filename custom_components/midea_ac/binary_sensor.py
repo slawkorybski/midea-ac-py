@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
 from homeassistant.components.binary_sensor import (BinarySensorDeviceClass,
                                                     BinarySensorEntity)
@@ -56,7 +55,7 @@ class MideaBinarySensor(MideaCoordinatorEntity, BinarySensorEntity):
                  coordinator: MideaDeviceUpdateCoordinator,
                  prop: str,
                  device_class: BinarySensorDeviceClass,
-                 translation_key: Optional[str] = None,
+                 translation_key: str | None = None,
                  *,
                  entity_category: EntityCategory = None) -> None:
         MideaCoordinatorEntity.__init__(self, coordinator)

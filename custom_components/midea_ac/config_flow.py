@@ -1,7 +1,7 @@
 """Config flow for Midea Smart AC."""
 from __future__ import annotations
 
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 import homeassistant.helpers.config_validation as cv
 import httpx
@@ -217,7 +217,7 @@ class MideaConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_show_token_key(
         self, user_input: dict[str, Any] | None = None,
         *,
-        device: Optional[AC | CC] = None
+        device: AC | CC | None = None
     ) -> ConfigFlowResult:
         """Handle the show token step of config flow."""
 
@@ -370,7 +370,7 @@ class MideaConfigFlow(ConfigFlow, domain=DOMAIN):
         """Create an httpx AsyncClient in a HA friendly way."""
         return httpx_client.get_async_client(self.hass, *args, **kwargs)
 
-    async def _test_manual_connection(self, config) -> Optional[AC | CC]:
+    async def _test_manual_connection(self, config) ->  AC | CC | None:
         DEVICE_TYPES = {
             "AC": DeviceType.AIR_CONDITIONER,
             "CC": DeviceType.COMMERCIAL_AC

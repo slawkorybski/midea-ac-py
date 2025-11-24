@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
 from homeassistant.components.button import ButtonEntity
 from homeassistant.config_entries import ConfigEntry
@@ -46,7 +45,7 @@ class MideaButton(MideaCoordinatorEntity, ButtonEntity):
     def __init__(self,
                  coordinator: MideaDeviceUpdateCoordinator,
                  method: str,
-                 translation_key: Optional[str] = None,
+                 translation_key:  str | None = None,
                  *,
                  entity_category: EntityCategory = None) -> None:
         MideaCoordinatorEntity.__init__(self, coordinator)

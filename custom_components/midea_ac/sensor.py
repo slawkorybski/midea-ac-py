@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
 from homeassistant.components.sensor import (SensorDeviceClass, SensorEntity,
                                              SensorStateClass)
@@ -125,7 +124,7 @@ class MideaSensor(MideaCoordinatorEntity, SensorEntity):
                  prop: str,
                  device_class: SensorDeviceClass,
                  unit: str,
-                 translation_key: Optional[str] = None,
+                 translation_key: str | None = None,
                  *,
                  state_class: SensorStateClass = SensorStateClass.MEASUREMENT,
                  ) -> None:
