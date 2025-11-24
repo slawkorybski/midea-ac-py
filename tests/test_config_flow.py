@@ -178,21 +178,11 @@ async def test_manual_flow(hass: HomeAssistant) -> None:
     }
 
 
-async def test_options_flow_init(hass: HomeAssistant) -> None:
+async def test_options_flow_init(
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+) -> None:
     """Test the integration options flow works and default options are set."""
-
-    # Create a mock config entry
-    mock_config_entry = MockConfigEntry(
-        domain=DOMAIN,
-        data={
-            CONF_ID: "1234",
-            CONF_HOST: "localhost",
-            CONF_PORT: 6444,
-            CONF_TOKEN: None,
-            CONF_KEY: None,
-            CONF_DEVICE_TYPE: 0xAC
-        }
-    )
 
     # Patch refresh and get_capabilities calls to allow integration to setup
     with (patch("custom_components.midea_ac.config_flow.AC.get_capabilities"),
@@ -228,21 +218,11 @@ async def test_options_flow_init(hass: HomeAssistant) -> None:
     assert len(mock_setup_entry.mock_calls) == 1
 
 
-async def test_reconfigure_flow(hass: HomeAssistant) -> None:
+async def test_reconfigure_flow(
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+) -> None:
     """Test the reconfigure flow validates input and failed connections return errors."""
-
-    # Create a mock config entry
-    mock_config_entry = MockConfigEntry(
-        domain=DOMAIN,
-        data={
-            CONF_ID: "1234",
-            CONF_HOST: "localhost",
-            CONF_PORT: 6444,
-            CONF_TOKEN: None,
-            CONF_KEY: None,
-            CONF_DEVICE_TYPE: 0xAC
-        }
-    )
 
     # Patch refresh and get_capabilities calls to allow integration to setup
     with (patch("custom_components.midea_ac.config_flow.AC.get_capabilities"),
