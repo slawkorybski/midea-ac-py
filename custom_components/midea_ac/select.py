@@ -68,10 +68,9 @@ async def async_setup_entry(
                                         device_class.CascadeMode
                                         ))
 
-    # TODO fallback to switch when only ON/OFF supported?
-    # Add select for devices with multiple purifier modes
+    # Add select for purifier with 3 or more modes
     supported_purifier_modes = getattr(device, "supported_purifier_modes", [])
-    if hasattr(device, "purifier") and len(supported_purifier_modes) > 1:
+    if hasattr(device, "purifier") and len(supported_purifier_modes) > 2:
         entities.append(MideaEnumSelect(coordinator,
                                         "purifier",
                                         device_class.PurifierMode,
@@ -89,8 +88,8 @@ class MideaEnumSelect(MideaCoordinatorEntity, SelectEntity):
                  prop: str,
                  enum_class: MideaIntEnum,
                  *,
-                 translation_key: Optional[str] = None,
-                 options: Optional[List[MideaIntEnum]] = None) -> None:
+                 translation_key: str | None = None,
+                 options: List[MideaIntEnum] | None = None) -> None:
         MideaCoordinatorEntity.__init__(self, coordinator)
 
         self._prop = prop
