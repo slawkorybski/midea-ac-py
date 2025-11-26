@@ -157,10 +157,6 @@ class MideaClimateDevice(MideaCoordinatorEntity[MideaDevice], ClimateEntity, Gen
 
     async def _apply(self) -> None:
         """Apply changes to the device."""
-        # Display on the AC should use the same unit as HA
-        self._device.fahrenheit = (
-            self.hass.config.units.temperature_unit == UnitOfTemperature.FAHRENHEIT)
-
         # Apply via the coordinator
         await self.coordinator.apply()
 
@@ -437,6 +433,14 @@ class MideaClimateACDevice(MideaClimateDevice[AC]):
         return {
             "follow_me": self._device.follow_me
         }
+
+    async def _apply(self) -> None:
+        """Apply changes to the device."""
+        # Display on the AC should use the same unit as HA
+        self._device.fahrenheit = (
+            self.hass.config.units.temperature_unit == UnitOfTemperature.FAHRENHEIT)
+
+        await super()._apply()
 
     async def async_set_follow_me(self, enabled: bool) -> None:
         """Set 'follow me' mode."""
