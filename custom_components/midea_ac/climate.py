@@ -431,7 +431,8 @@ class MideaClimateACDevice(MideaClimateDevice[AC]):
         """Return device specific state attributes."""
 
         return {
-            "follow_me": self._device.follow_me
+            "follow_me": f"{self._device.follow_me}",
+            "error_code": f"{self._device.error_code}",
         }
 
     async def _apply(self) -> None:

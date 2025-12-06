@@ -15,5 +15,5 @@
   "requirements": [
     "msmart-ng@git+https://github.com/mill1000/midea-msmart@2c1d9e0"
   ],
-  "version": "2025.9.0"
+  "version": "2025.9.1"
 }

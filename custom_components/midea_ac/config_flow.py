@@ -273,11 +273,15 @@ class MideaConfigFlow(ConfigFlow, domain=DOMAIN):
                 # Attempt a connection to see if config is valid
                 device = await self._test_manual_connection(user_input)
 
-                if device:
+                if not device or device.online == False:
+                    # Indicate a connection could not be made
+                    errors["base"] = "cannot_connect"
+                elif device and device.supported == False:
+                    # Indicate unsupported device type
+                    errors["base"] = "unsupported_device"
+                else:
+                    # Create entry from valid device
                     return await self._create_entry_from_device(device)
-
-                # Indicate a connection could not be made
-                errors["base"] = "cannot_connect"
 
         user_input = user_input or {}
 
@@ -333,7 +337,14 @@ class MideaConfigFlow(ConfigFlow, domain=DOMAIN):
                 # Attempt a connection to see if config is valid
                 device = await self._test_manual_connection(user_input)
 
-                if device:
+                if not device or device.online == False:
+                    # Indicate a connection could not be made
+                    errors["base"] = "cannot_connect"
+                elif device and device.supported == False:
+                    # Indicate unsupported device type
+                    errors["base"] = "unsupported_device"
+                else:
+                    # Update entry
                     return self.async_update_reload_and_abort(
                         self._get_reconfigure_entry(),
                         data_updates={
@@ -345,9 +356,6 @@ class MideaConfigFlow(ConfigFlow, domain=DOMAIN):
                             CONF_KEY: device.key,
                         },
                     )
-
-                # Indicate a connection could not be made
-                errors["base"] = "cannot_connect"
 
         # Use existing config entry data if no user input
         user_input = user_input or self._get_reconfigure_entry().data
@@ -387,20 +395,19 @@ class MideaConfigFlow(ConfigFlow, domain=DOMAIN):
         # Ensure device is a supported type
         assert isinstance(device, (AC, CC))
 
-        # Configure token and key as needed
+        # Authenticate with device as needed
         token = config.get(CONF_TOKEN)
         key = config.get(CONF_KEY)
         if token and key:
             try:
                 await device.authenticate(token, key)
-                success = True
             except AuthenticationError:
-                success = False
-        else:
-            await device.refresh()
-            success = device.online
+                return None
 
-        return device if success else None
+        # Attempt to refresh device state
+        await device.refresh()
+
+        return device
 
     async def _create_entry_from_device(self, device) -> ConfigFlowResult:
         # Save the device into global data

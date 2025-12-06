@@ -21,6 +21,10 @@ __Note: Only air conditioner devices (type 0xAC and 0xCC) are supported.__
 
 See [Getting Device Info](#getting-device-info) to determine if a device is supported.
 
+## Note On Cloud Usage
+This integration works locally. No internet connection is required to control your device. 
+
+_However_, for newer "V3" devices, the Midea Cloud is used to acquire a token & key during device discovery. Once configured, the token & key are saved and no further cloud connection is required. Devices are not linked to the built-in accounts. Concerned users may manually configure their devices by acquiring a token & key with their own account credentials via the msmart-ng CLI.
 
 ## General Features
 * Automatic device discovery and configuration via the GUI.
@@ -30,27 +34,29 @@ See [Getting Device Info](#getting-device-info) to determine if a device is supp
 ### Device 0xAC Features
 * Support for sleep, eco, boost (turbo), and away (freeze protection) presets.
 * Switch for device display<sup>1</sup>.
+* Device error codes as an attribute.
+* Selectable data format and scale for energy and power sensors.<sup>2</sup>
 * Advanced controls (when supported by the device):
   * Purifier (Ionizer/UV/Sterilizer)
   * Device filter alert
   * Custom fan speeds
-  * Service to enable the "Follow Me" function<sup>2</sup>
+  * Service to enable the "Follow Me" function<sup>3</sup>
   * Swing angle (fan position)
   * Indoor humidity sensor
   * Target humidity in Dry mode
-  * Energy and power sensors<sup>3</sup>
   * Start and monitor self-cleaning
   * Rate selection (Gear mode)
   * "Breeze" modes (e.g., breeze away, breeze mild, breezeless)
   * iECO
   * Auxiliary heating mode
   * Flash/jet cool
+  * Cascade
 
 <small>
 
 1. Device dependent. Some devices only support display control via IR.
-2. Experimental. "Follow Me" requires the IR remote to transmit temperature data. More info [here](https://github.com/mill1000/midea-msmart/pull/91).
-3. Sensors must be manually enabled on the device page. A device may not support all energy sensors.
+2. Sensors must be manually enabled on the device page. A device may not support all energy sensors.
+3. Experimental. "Follow Me" requires the IR remote to transmit temperature data. More info [here](https://github.com/mill1000/midea-msmart/pull/91).
 </small>
 
 ### Device 0xCC Features
@@ -175,3 +181,4 @@ This project is a fork of [mac-zhou/midea-ac-py](https://github.com/mac-zhou/mid
 * [NeoAcheron/midea-ac-py](https://github.com/NeoAcheron/midea-ac-py)
 * [andersonshatch/midea-ac-py](https://github.com/andersonshatch/midea-ac-py)
 * [yitsushi/midea-air-condition](https://github.com/yitsushi/midea-air-condition)
+
