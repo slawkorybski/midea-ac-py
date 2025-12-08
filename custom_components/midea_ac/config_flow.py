@@ -40,11 +40,14 @@ from .const import (CONF_ADDITIONAL_OPERATION_MODES, CONF_BEEP,
                     CONF_WORKAROUNDS, DOMAIN, UPDATE_INTERVAL, EnergyFormat)
 
 _DEFAULT_OPTIONS = {
-    CONF_BEEP: True,
     CONF_TEMP_STEP: 1.0,
-    CONF_FAN_SPEED_STEP: 1,
     CONF_MAX_CONNECTION_LIFETIME: None,
     CONF_SWING_ANGLE_RTL: False,
+}
+
+_DEFAULT_AC_OPTIONS = {
+    CONF_BEEP: True,
+    CONF_FAN_SPEED_STEP: 1,
     CONF_ENERGY_SENSOR: {
         CONF_ENERGY_DATA_FORMAT: EnergyFormat.BCD,
         CONF_ENERGY_DATA_SCALE: 1.0
@@ -423,8 +426,13 @@ class MideaConfigFlow(ConfigFlow, domain=DOMAIN):
             CONF_KEY: device.key,
         }
 
+        # Build default options based on device type
+        default_options = _DEFAULT_OPTIONS
+        if device.type == DeviceType.AIR_CONDITIONER:
+            default_options |= _DEFAULT_AC_OPTIONS
+
         # Create a config entry with the config data and default options
-        return self.async_create_entry(title=f"{DOMAIN} {device.id}", data=data, options=_DEFAULT_OPTIONS)
+        return self.async_create_entry(title=f"{DOMAIN} {device.id}", data=data, options=default_options)
 
     @staticmethod
     @callback
@@ -435,6 +443,24 @@ class MideaConfigFlow(ConfigFlow, domain=DOMAIN):
 
 class MideaOptionsFlow(OptionsFlow):
     """Options flow from Midea Smart AC."""
+
+    _BASE_SCHEMA = vol.Schema(
+        {
+            vol.Optional(CONF_SWING_ANGLE_RTL): cv.boolean,
+            vol.Optional(CONF_TEMP_STEP): NumberSelector(
+                NumberSelectorConfig(
+                    min=.5,
+                    max=5,
+                    step=.5,
+                    unit_of_measurement=DEGREE
+                )
+            ),
+            vol.Optional(CONF_MAX_CONNECTION_LIFETIME): vol.All(
+                vol.Coerce(int),
+                vol.Range(min=UPDATE_INTERVAL)
+            ),
+        }
+    )
 
     _ENERGY_SENSOR_SCHEMA = section(
         vol.Schema(
@@ -456,41 +482,48 @@ class MideaOptionsFlow(OptionsFlow):
         {"collapsed": True}
     )
 
+    _AC_OPTION_SCHEMA = vol.Schema(
+        {
+            vol.Optional(CONF_BEEP): cv.boolean,
+            vol.Optional(CONF_FAN_SPEED_STEP): NumberSelector(
+                NumberSelectorConfig(min=1, max=20, step=1)
+            ),
+            vol.Optional(CONF_ENERGY_SENSOR): _ENERGY_SENSOR_SCHEMA,
+            vol.Optional(CONF_POWER_SENSOR): _ENERGY_SENSOR_SCHEMA,
+            vol.Optional(CONF_WORKAROUNDS): section(
+                vol.Schema({
+                    vol.Optional(CONF_USE_FAN_ONLY_WORKAROUND): cv.boolean,
+                    vol.Optional(CONF_SHOW_ALL_PRESETS): cv.boolean,
+                    vol.Optional(CONF_ADDITIONAL_OPERATION_MODES): cv.string,
+                }),
+                {"collapsed": True},
+            )
+        }
+    )
+
+    _CC_OPTION_SCHEMA = vol.Schema({})
+
+    _DEVICE_SCHEMAS = {
+        DeviceType.AIR_CONDITIONER: _AC_OPTION_SCHEMA,
+        DeviceType.COMMERCIAL_AC: _CC_OPTION_SCHEMA,
+    }
+
     async def async_step_init(self, user_input=None) -> ConfigFlowResult:
         """Handle the options flow."""
         if user_input is not None:
             return self.async_create_entry(data=user_input)
 
-        data_schema = self.add_suggested_values_to_schema(
-            vol.Schema({
-                vol.Optional(CONF_BEEP): cv.boolean,
-                vol.Optional(CONF_SWING_ANGLE_RTL): cv.boolean,
-                vol.Optional(CONF_TEMP_STEP): NumberSelector(
-                    NumberSelectorConfig(
-                        min=.5,
-                        max=5,
-                        step=.5,
-                        unit_of_measurement=DEGREE
-                    )
-                ),
-                vol.Optional(CONF_FAN_SPEED_STEP): NumberSelector(
-                    NumberSelectorConfig(min=1, max=20, step=1)
-                ),
-                vol.Optional(CONF_MAX_CONNECTION_LIFETIME): vol.All(
-                    vol.Coerce(int),
-                    vol.Range(min=UPDATE_INTERVAL)
-                ),
-                vol.Optional(CONF_ENERGY_SENSOR): self._ENERGY_SENSOR_SCHEMA,
-                vol.Optional(CONF_POWER_SENSOR): self._ENERGY_SENSOR_SCHEMA,
-                vol.Optional(CONF_WORKAROUNDS): section(
-                    vol.Schema({
-                        vol.Optional(CONF_USE_FAN_ONLY_WORKAROUND): cv.boolean,
-                        vol.Optional(CONF_SHOW_ALL_PRESETS): cv.boolean,
-                        vol.Optional(CONF_ADDITIONAL_OPERATION_MODES): cv.string,
-                    }),
-                    {"collapsed": True},
-                )
+        # Get options schema based on device type
+        device_type = self.config_entry.data.get(CONF_DEVICE_TYPE)
+        device_schema = {}
 
-            }), self.config_entry.options)
+        if schema := self._DEVICE_SCHEMAS.get(device_type):
+            device_schema = schema.schema
+
+        # Merge base and device-specific schema
+        data_schema = self.add_suggested_values_to_schema(
+            self._BASE_SCHEMA.extend(device_schema),
+            self.config_entry.options,
+        )
 
         return self.async_show_form(step_id="init", data_schema=data_schema)
