@@ -638,9 +638,10 @@ class MideaClimateCCDevice(MideaClimateDevice[CC]):
     @property
     def supported_features(self) -> int:
         """Return the supported features."""
-        # Add target humidity if supported and in proper mode
-        # TODO unverified
-        if (self._device.supports_humidity and self._device.operational_mode in [CC.OperationalMode.DRY]):
+        # Add target humidity if in proper mode, and supported and a valid current humidity
+        if (self._device.operational_mode in [CC.OperationalMode.DRY] and
+                self._device.supports_humidity and
+                self._device.indoor_humidity is not None):
             return self._supported_features | ClimateEntityFeature.TARGET_HUMIDITY
 
         return self._supported_features
