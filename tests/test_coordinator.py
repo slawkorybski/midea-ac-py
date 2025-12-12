@@ -6,28 +6,15 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from homeassistant.config_entries import ConfigEntryState
-from homeassistant.const import CONF_HOST, CONF_ID, CONF_PORT, CONF_TOKEN
 from homeassistant.core import HomeAssistant
 from msmart.lan import _LanProtocol
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.midea_ac.const import CONF_KEY, DOMAIN
+from custom_components.midea_ac.const import DOMAIN
 
 
-async def _setup_integration(hass: HomeAssistant) -> MockConfigEntry:
+async def _setup_integration(hass: HomeAssistant, mock_config_entry: MockConfigEntry) -> MockConfigEntry:
     """Set up the integration with a mock config entry."""
-
-    # Create a mock config entry
-    mock_config_entry = MockConfigEntry(
-        domain=DOMAIN,
-        data={
-            CONF_ID: "1234",
-            CONF_HOST: "localhost",
-            CONF_PORT: 6444,
-            CONF_TOKEN: None,
-            CONF_KEY: None,
-        }
-    )
 
     # Patch refresh and get_capabilities calls to allow integration to setup
     with (patch("custom_components.midea_ac.config_flow.AC.get_capabilities"),
@@ -64,12 +51,12 @@ def _mock_lan_protocol(lan) -> None:
 
 async def test_concurrent_network_access_exception(
     hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
 ) -> None:
     """Test concurrent network access can cause an exception."""
 
     # Setup the integration
-    mock_config_entry = await _setup_integration(hass)
-    assert mock_config_entry
+    await _setup_integration(hass, mock_config_entry)
 
     # Fetch the coordinator
     coordinator = hass.data[DOMAIN][mock_config_entry.entry_id]

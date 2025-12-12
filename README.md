@@ -17,7 +17,7 @@ A device is likely supported if it uses one of the following Android apps or it'
 * Toshiba AC NA (com.midea.toshiba)
 * 美的美居 (com.midea.ai.appliances)
 
-__Note: Only air conditioner devices (type 0xAC) are supported.__ 
+__Note: Only air conditioner devices (type 0xAC and 0xCC) are supported.__ 
 
 See [Getting Device Info](#getting-device-info) to determine if a device is supported.
 
@@ -26,16 +26,18 @@ This integration works locally. No internet connection is required to control yo
 
 _However_, for newer "V3" devices, the Midea Cloud is used to acquire a token & key during device discovery. Once configured, the token & key are saved and no further cloud connection is required. Devices are not linked to the built-in accounts. Concerned users may manually configure their devices by acquiring a token & key with their own account credentials via the msmart-ng CLI.
 
-## Features
+## General Features
 * Automatic device discovery and configuration via the GUI.
 * Device capability detection. Only supported functions are displayed.
-* Support for sleep, eco, boost (turbo), and away (freeze protection) presets.
 * Minimum and maximum target temperatures provided by the device.
+
+### Device 0xAC Features
+* Support for sleep, eco, boost (turbo), and away (freeze protection) presets.
 * Switch for device display<sup>1</sup>.
 * Device error codes as an attribute.
 * Selectable data format and scale for energy and power sensors.<sup>2</sup>
 * Advanced controls (when supported by the device):
-  * Purifier (Ionizer/UV)
+  * Purifier (Ionizer/UV/Sterilizer)
   * Device filter alert
   * Custom fan speeds
   * Service to enable the "Follow Me" function<sup>3</sup>
@@ -56,6 +58,15 @@ _However_, for newer "V3" devices, the Midea Cloud is used to acquire a token & 
 2. Sensors must be manually enabled on the device page. A device may not support all energy sensors.
 3. Experimental. "Follow Me" requires the IR remote to transmit temperature data. More info [here](https://github.com/mill1000/midea-msmart/pull/91).
 </small>
+
+### Device 0xCC Features
+* Support for eco, silent, and sleep presets.
+* Advanced controls (when supported by the device):
+  * Purifier (Ionizer/UV/Sterilizer)
+  * Swing angle (fan position)
+  * Indoor humidity sensor
+  * Target humidity in Dry mode
+  * Auxiliary heating mode
 
 ## Translations
 Thanks to the community the integration is available in the following languages.
@@ -99,6 +110,7 @@ Or search HACS integrations for "Midea Smart AC".
 Midea Smart AC is configured via the GUI. See [the HA docs](https://www.home-assistant.io/getting-started/integration/) for more details.
 
 Click the _Add Integration_ button and search for "Midea Smart AC".
+
 ![Add Device](docs/add_device.png)
 
 Devices can be automatically discovered and configured or manually configured.
@@ -125,31 +137,35 @@ Name | Description | Required | Example
 **ID** | Device ID | Yes | 123456789012345
 **Host** | Device IP address | Yes | 192.168.1.100
 **Port** | Device port | Yes | 6444
+**Device Type** | Device type | Yes | AC
 **Token** | Device token | For V3 devices | ACEDDA53831AE5DC... (128 character hexadecimal string)
 **Key** | Device key | For V3 devices | CFFA10FC... (64 character hexadecimal string)
 
 ## Integration Options
-Additional options are available to tweak integration behavior per device.
-
-![Integration Options](docs/options.png)
+Additional options are available to tweak integration behavior per device. The available options depend on the device type.
 
 ---
-Name | Default | Description 
-:--- | :--- | :--- 
-**Beep** | True | Enable beep on setting changes.
-**Reverse Horizontal Swing Angle** | False | Reverse the order of horizontal swing angles from left-to-right to right-to-left.
-**Temperature Step** | 1.0 | Step size for temperature set point.
-**Fan Speed Step** | 1 | Step size for custom fan speeds.
-**Maximum Connection Lifetime** | Empty | Limit the time (in seconds) a connection to the device will be used before reconnecting. If left blank, the connection will persist indefinitely. If your device disconnects at regular intervals, set this to a value below the interval.
-**Energy Sensor Format > Data Format** | BCD | Select the data format for decoding energy data from the device.
-**Energy Sensor Format > Scale** | 1.0 | Select the data scale for reporting energy data from the device.
-**Power Sensor Format > Data Format** | BCD | Select the data format for decoding power data from the device.
-**Power Sensor Format > Scale** | 1.0 | Select the data scale for reporting power data from the device.
-**Workarounds > Use Fan-only Workaround** | False | Enable this option if device updates cause the device to turn on and switch to fan-only.
-**Workarounds > Show All Presets** | False | Show all presets regardless of device's reported capabilities.
-**Workarounds > Additional Operation Modes** | Empty | Additional HVAC modes to make available in case the device's capabilities are incorrect.
+Name | Default | Device Type | Description 
+:--- | :--- | :--- | :--- 
+**Reverse Horizontal Swing Angle** | False | All | Reverse the order of horizontal swing angles from left-to-right to right-to-left.
+**Temperature Step** | 1.0 | All | Step size for temperature set point.
+**Maximum Connection Lifetime** | Empty | All | Limit the time (in seconds) a connection to the device will be used before reconnecting. If left blank, the connection will persist indefinitely. If your device disconnects at regular intervals, set this to a value below the interval.
+**Beep** | True | AC |Enable beep on setting changes.
+**Fan Speed Step** | 1 | AC |Step size for custom fan speeds.
+**Energy Sensor Format > Data Format** | BCD | AC | Select the data format for decoding energy data from the device.
+**Energy Sensor Format > Scale** | 1.0 | AC | Select the data scale for reporting energy data from the device.
+**Power Sensor Format > Data Format** | BCD | AC | Select the data format for decoding power data from the device.
+**Power Sensor Format > Scale** | 1.0 | AC | Select the data scale for reporting power data from the device.
+**Workarounds > Use Fan-only Workaround** | False | AC | Enable this option if device updates cause the device to turn on and switch to fan-only.
+**Workarounds > Show All Presets** | False | AC | Show all presets regardless of device's reported capabilities.
+**Workarounds > Additional Operation Modes** | Empty | AC | Additional HVAC modes to make available in case the device's capabilities are incorrect.
+
+### AC Options
+![Integration Options](docs/ac_options.png)
 
 
+### CC Options
+![Integration Options](docs/cc_options.png)
 
 ## Resolving Connectivity Issues
 Some users have reported issue with their devices periodically becoming unavailable, and with logs full of warnings and errors. This is almost always due to the device terminating the existing connection and briefly rejecting new connections. 
