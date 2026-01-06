@@ -75,9 +75,9 @@ class ClimateConfig:
     min_target_temperature: float
     max_target_temperature: float
     supported_operation_modes: Sequence[MideaIntEnum]
-    supported_fan_speeds: Sequence[MideaIntEnum] | None = None
-    supported_swing_modes: Sequence[MideaIntEnum] | None = None
-    supported_preset_modes: Sequence[str] | None = None
+    supported_fan_speeds: Sequence[MideaIntEnum]
+    supported_swing_modes: Sequence[MideaIntEnum]
+    supported_preset_modes: Sequence[str]
 
 
 class MideaClimateDevice(MideaCoordinatorEntity[MideaDevice], ClimateEntity, Generic[MideaDevice]):
@@ -129,23 +129,23 @@ class MideaClimateDevice(MideaCoordinatorEntity[MideaDevice], ClimateEntity, Gen
         if config.supported_fan_speeds:
             self._supported_features |= ClimateEntityFeature.FAN_MODE
 
-            # Convert fan speeds to strings
-            self._fan_modes = [m.name.lower()
-                               for m in config.supported_fan_speeds]
+        # Convert fan speeds to strings
+        self._fan_modes = [m.name.lower()
+                           for m in config.supported_fan_speeds]
 
         if config.supported_preset_modes:
             self._supported_features |= ClimateEntityFeature.PRESET_MODE
 
-            # Store supported preset modes
-            self._preset_modes = config.supported_preset_modes
+        # Store supported preset modes
+        self._preset_modes = config.supported_preset_modes
 
         # If device supports any swing mode, add it to supported features
-        if config.supported_swing_modes and config.supported_swing_modes != [self._device_class.SwingMode.OFF]:
+        if config.supported_swing_modes != [self._device_class.SwingMode.OFF]:
             self._supported_features |= ClimateEntityFeature.SWING_MODE
 
-            # Convert Midea swing modes to strings
-            self._swing_modes = [m.name.lower()
-                                 for m in config.supported_swing_modes]
+        # Convert swing modes to strings
+        self._swing_modes = [m.name.lower()
+                             for m in config.supported_swing_modes]
 
         # Dump all supported modes for debug
         _LOGGER.debug("Supported operational modes: '%s'.", self._hvac_modes)
