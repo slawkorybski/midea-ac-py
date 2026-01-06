@@ -1,4 +1,4 @@
-"""Tests for the data update coordinator flow."""
+"""Tests for the data update coordinator."""
 
 import asyncio
 import logging

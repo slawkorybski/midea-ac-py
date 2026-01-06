@@ -1,4 +1,4 @@
-"""Tests for the integration init."""
+"""Tests for the switch platform."""
 
 import logging
 from unittest.mock import AsyncMock, MagicMock
