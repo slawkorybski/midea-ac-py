@@ -6,9 +6,11 @@ from unittest.mock import patch
 
 import pytest
 from homeassistant.core import HomeAssistant
+from msmart.const import DeviceType
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.midea_ac.const import (CONF_ADDITIONAL_OPERATION_MODES,
+                                              CONF_DEVICE_TYPE,
                                               CONF_ENERGY_DATA_FORMAT,
                                               CONF_ENERGY_DATA_SCALE,
                                               CONF_ENERGY_SENSOR,
@@ -37,6 +39,31 @@ _MIGRATED_ENERGY_CONFIGS = {
 }
 
 
+async def test_config_entry_migration_from_4(hass: HomeAssistant) -> None:
+    """Test migration of config entry from 1.4"""
+
+    # Create a mock v1.4 config entry
+    mock_config_entry = MockConfigEntry(
+        domain=DOMAIN,
+        minor_version=4,
+        data={},  # Expect data to include a device type after migration
+        options={
+        }
+    )
+
+    with patch(
+        "custom_components.midea_ac.async_setup_entry",
+        return_value=True,
+    ):
+        mock_config_entry.add_to_hass(hass)
+        await hass.config_entries.async_setup(mock_config_entry.entry_id)
+        await hass.async_block_till_done()
+
+    assert mock_config_entry.version == 1
+    assert mock_config_entry.minor_version == 5
+    assert mock_config_entry.data[CONF_DEVICE_TYPE] == DeviceType.AIR_CONDITIONER
+
+
 async def test_config_entry_migration_from_3(hass: HomeAssistant) -> None:
     """Test basic migration of config entry from 1.3"""
 
@@ -63,7 +90,7 @@ async def test_config_entry_migration_from_3(hass: HomeAssistant) -> None:
 
     # Assert expected version
     assert mock_config_entry.version == 1
-    assert mock_config_entry.minor_version == 4
+    assert mock_config_entry.minor_version == 5
 
     # Grab options to test migration
     options = mock_config_entry.options
@@ -132,7 +159,7 @@ async def test_config_entry_migration_from_3_energy_formats(
 
     # Assert expected version
     assert mock_config_entry.version == 1
-    assert mock_config_entry.minor_version == 4
+    assert mock_config_entry.minor_version == 5
 
     # Grab options to test migration
     options = mock_config_entry.options
@@ -182,7 +209,7 @@ async def test_config_entry_migration_from_2(
 
     # Assert expected version
     assert mock_config_entry.version == 1
-    assert mock_config_entry.minor_version == 4
+    assert mock_config_entry.minor_version == 5
 
     # Grab options to test migration
     options = mock_config_entry.options
@@ -217,5 +244,5 @@ async def test_config_entry_migration_from_1(hass: HomeAssistant) -> None:
         await hass.async_block_till_done()
 
     assert mock_config_entry.version == 1
-    assert mock_config_entry.minor_version == 4
+    assert mock_config_entry.minor_version == 5
     assert isinstance(mock_config_entry.unique_id, str)

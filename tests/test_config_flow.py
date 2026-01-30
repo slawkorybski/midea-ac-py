@@ -1,7 +1,7 @@
 """Tests for the config flow."""
 
 import logging
-from unittest.mock import AsyncMock, PropertyMock, patch
+from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
 
 import pytest
 from homeassistant import config_entries
@@ -9,10 +9,12 @@ from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_HOST, CONF_ID, CONF_PORT, CONF_TOKEN
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType, InvalidData
+from msmart.device import AirConditioner as AC
 from msmart.lan import AuthenticationError
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.midea_ac.const import CONF_BEEP, CONF_KEY, DOMAIN
+from custom_components.midea_ac.const import (CONF_BEEP, CONF_DEVICE_TYPE,
+                                              CONF_KEY, DOMAIN)
 
 logging.basicConfig(level=logging.DEBUG)
 _LOGGER = logging.getLogger(__name__)
@@ -54,6 +56,7 @@ async def test_manual_flow_invalid_input(hass: HomeAssistant) -> None:
     )
     assert result
 
+    # Test various invalid input combinations
     invalid_input = [
         {
             CONF_HOST: None
@@ -66,6 +69,12 @@ async def test_manual_flow_invalid_input(hass: HomeAssistant) -> None:
             CONF_HOST: "localhost",
             CONF_PORT: 6444,
             CONF_ID: None
+        },
+        {
+            CONF_HOST: "localhost",
+            CONF_PORT: 6444,
+            CONF_ID: "1234",
+            CONF_DEVICE_TYPE: None
         }
     ]
     for input in invalid_input:
@@ -82,6 +91,7 @@ async def test_manual_flow_invalid_input(hass: HomeAssistant) -> None:
             CONF_HOST: "localhost",
             CONF_PORT: 6444,
             CONF_ID: "1234",
+            CONF_DEVICE_TYPE: "AC",
             CONF_TOKEN: "not_hex_string",
             CONF_KEY: "also_not_hex"
 
@@ -104,20 +114,21 @@ async def test_manual_flow_cant_connect_v2(hass: HomeAssistant) -> None:
     )
     assert result
 
-    # Check manually configuring a V2 device
-    with patch("custom_components.midea_ac.config_flow.AC", autospec=True) as mock_ac:
-        device = mock_ac.return_value
-        device.authenticate = AsyncMock()
+    # Patch construct to build a mock device that isn't online
+    with patch("custom_components.midea_ac.config_flow.Device.construct", autospec=True) as mock_construct:
+        device = MagicMock(spec=AC)
         device.refresh = AsyncMock()
         type(device).online = PropertyMock(return_value=False)
+        mock_construct.return_value = device
 
+        # Configure V2 device
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
             user_input={
                 CONF_HOST: "localhost",
                 CONF_PORT: 6444,
                 CONF_ID: "1234",
-
+                CONF_DEVICE_TYPE: "AC"
             }
         )
         assert result
@@ -140,21 +151,23 @@ async def test_manual_flow_cant_connect_v3(hass: HomeAssistant) -> None:
     )
     assert result
 
-    # Check manually configuring a V3 device that can't connect
-    with patch("custom_components.midea_ac.config_flow.AC", autospec=True) as mock_ac:
-        device = mock_ac.return_value
-        device.authenticate = AsyncMock()
+    # Patch construct to build a mock device that isn't online
+    with patch("custom_components.midea_ac.config_flow.Device.construct", autospec=True) as mock_construct:
+        device = MagicMock(spec=AC)
         device.refresh = AsyncMock()
         type(device).online = PropertyMock(return_value=False)
+        mock_construct.return_value = device
 
+        # Configure V3 device
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
             user_input={
                 CONF_HOST: "localhost",
                 CONF_PORT: 6444,
                 CONF_ID: "1234",
+                CONF_DEVICE_TYPE: "AC",
                 CONF_TOKEN: "1234",
-                CONF_KEY: "1234"
+                CONF_KEY: "1234",
 
             }
         )
@@ -178,22 +191,24 @@ async def test_manual_flow_cant_authenticate(hass: HomeAssistant) -> None:
     )
     assert result
 
-    # Check manually configuring a V3 device that can't authenticate
-    with patch("custom_components.midea_ac.config_flow.AC", autospec=True) as mock_ac:
-        device = mock_ac.return_value
+    # Patch construct to build a mock device that fails to authenticate
+    with patch("custom_components.midea_ac.config_flow.Device.construct", autospec=True) as mock_construct:
+        device = MagicMock(spec=AC)
         device.authenticate = AsyncMock(side_effect=AuthenticationError)
         device.refresh = AsyncMock()
         type(device).online = PropertyMock(return_value=False)
+        mock_construct.return_value = device
 
+        # Configure V3 device
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
             user_input={
                 CONF_HOST: "localhost",
                 CONF_PORT: 6444,
                 CONF_ID: "1234",
+                CONF_DEVICE_TYPE: "AC",
                 CONF_TOKEN: "1234",
-                CONF_KEY: "1234"
-
+                CONF_KEY: "1234",
             }
         )
         assert result
@@ -216,20 +231,22 @@ async def test_manual_flow_unsupported_device(hass: HomeAssistant) -> None:
     )
     assert result
 
-    # Test configuring a device that is unsupported
-    with patch("custom_components.midea_ac.config_flow.AC", autospec=True) as mock_ac:
-        device = mock_ac.return_value
+    # Patch construct to build a mock device that is online but unsupported
+    with patch("custom_components.midea_ac.config_flow.Device.construct", autospec=True) as mock_construct:
+        device = MagicMock(spec=AC)
         device.refresh = AsyncMock()
         type(device).online = PropertyMock(return_value=True)
         type(device).supported = PropertyMock(return_value=False)
+        mock_construct.return_value = device
 
-        # Manually configure a device
+        # Configure the device
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
             user_input={
                 CONF_HOST: "localhost",
                 CONF_PORT: 6444,
-                CONF_ID: "1234"
+                CONF_ID: "1234",
+                CONF_DEVICE_TYPE: "AC"
             }
         )
         assert result
@@ -241,20 +258,85 @@ async def test_manual_flow_unsupported_device(hass: HomeAssistant) -> None:
         assert result["errors"] == {"base": "unsupported_device"}
 
 
-async def test_options_flow_init(hass: HomeAssistant) -> None:
-    """Test the integration options flow works and default options are set."""
-
-    # Create a mock config entry
-    mock_config_entry = MockConfigEntry(
-        domain=DOMAIN,
-        data={
-            CONF_ID: "1234",
-            CONF_HOST: "localhost",
-            CONF_PORT: 6444,
-            CONF_TOKEN: None,
-            CONF_KEY: None,
-        }
+async def test_manual_flow_ac_device(hass: HomeAssistant) -> None:
+    """Test the manual flow when creating an AC device."""
+    # Start the flow
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "manual"}
     )
+    assert result
+
+    # Patch CC device refresh method
+    with (patch("custom_components.midea_ac.config_flow.AC.refresh") as refresh_mock,
+          patch("custom_components.midea_ac.config_flow.AC.online", new_callable=PropertyMock) as online_mock,
+          patch("custom_components.midea_ac.config_flow.AC.supported", new_callable=PropertyMock) as supported_mock
+          ):
+
+        # Mock device online and supported
+        online_mock.return_value = True
+        supported_mock.return_value = True
+
+        # Configure CC device
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={
+                CONF_HOST: "localhost",
+                CONF_PORT: 6444,
+                CONF_ID: "1234",
+                CONF_DEVICE_TYPE: "AC",
+            }
+        )
+        assert result
+
+        # Refresh should be called
+        refresh_mock.assert_awaited_once()
+
+        # No errors
+        assert "errors" not in result
+
+
+async def test_manual_flow_cc_device(hass: HomeAssistant) -> None:
+    """Test the manual flow when creating a CC device."""
+    # Start the flow
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "manual"}
+    )
+    assert result
+
+    # Patch CC device refresh method
+    with (patch("custom_components.midea_ac.config_flow.CC.refresh") as refresh_mock,
+          patch("custom_components.midea_ac.config_flow.CC.online", new_callable=PropertyMock) as online_mock,
+          patch("custom_components.midea_ac.config_flow.CC.supported", new_callable=PropertyMock) as supported_mock
+          ):
+
+        # Mock device online and supported
+        online_mock.return_value = True
+        supported_mock.return_value = True
+
+        # Configure CC device
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={
+                CONF_HOST: "localhost",
+                CONF_PORT: 6444,
+                CONF_ID: "1234",
+                CONF_DEVICE_TYPE: "CC",
+            }
+        )
+        assert result
+
+        # Refresh should be called
+        refresh_mock.assert_awaited_once()
+
+        # No errors
+        assert "errors" not in result
+
+
+async def test_options_flow_init(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+) -> None:
+    """Test the integration options flow works and default options are set."""
 
     # Patch refresh and get_capabilities calls to allow integration to setup
     with (patch("custom_components.midea_ac.config_flow.AC.get_capabilities"),
@@ -290,20 +372,11 @@ async def test_options_flow_init(hass: HomeAssistant) -> None:
     assert len(mock_setup_entry.mock_calls) == 1
 
 
-async def test_reconfigure_flow_invalid_input(hass: HomeAssistant) -> None:
+async def test_reconfigure_flow_invalid_input(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+) -> None:
     """Test the reconfigure flow validates input."""
-
-    # Create a mock config entry
-    mock_config_entry = MockConfigEntry(
-        domain=DOMAIN,
-        data={
-            CONF_ID: "1234",
-            CONF_HOST: "localhost",
-            CONF_PORT: 6444,
-            CONF_TOKEN: None,
-            CONF_KEY: None,
-        }
-    )
 
     # Patch refresh and get_capabilities calls to allow integration to setup
     with (patch("custom_components.midea_ac.config_flow.AC.get_capabilities"),
@@ -360,20 +433,11 @@ async def test_reconfigure_flow_invalid_input(hass: HomeAssistant) -> None:
     }
 
 
-async def test_reconfigure_flow_cant_connect(hass: HomeAssistant) -> None:
+async def test_reconfigure_flow_cant_connect_v2(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+) -> None:
     """Test the reconfigure flow returns error when connection fails."""
-
-    # Create a mock config entry
-    mock_config_entry = MockConfigEntry(
-        domain=DOMAIN,
-        data={
-            CONF_ID: "1234",
-            CONF_HOST: "localhost",
-            CONF_PORT: 6444,
-            CONF_TOKEN: None,
-            CONF_KEY: None,
-        }
-    )
 
     # Patch refresh and get_capabilities calls to allow integration to setup
     with (patch("custom_components.midea_ac.config_flow.AC.get_capabilities"),
@@ -394,12 +458,13 @@ async def test_reconfigure_flow_cant_connect(hass: HomeAssistant) -> None:
     )
     assert result
 
-    # Check reconfiguring a V2 device
-    with patch("custom_components.midea_ac.config_flow.AC", autospec=True) as mock_ac:
-        device = mock_ac.return_value
+    # Patch construct to build a mock device that isn't online
+    with patch("custom_components.midea_ac.config_flow.Device.construct", autospec=True) as mock_construct:
+        device = MagicMock(spec=AC)
         device.authenticate = AsyncMock()
         device.refresh = AsyncMock()
         type(device).online = PropertyMock(return_value=False)
+        mock_construct.return_value = device
 
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
@@ -419,12 +484,39 @@ async def test_reconfigure_flow_cant_connect(hass: HomeAssistant) -> None:
         # Connection should fail
         assert result["errors"] == {"base": "cannot_connect"}
 
-    # Check reconfiguring a V3 device
-    with patch("custom_components.midea_ac.config_flow.AC", autospec=True) as mock_ac:
-        device = mock_ac.return_value
+
+async def test_reconfigure_flow_cant_connect_v3(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+) -> None:
+    """Test the reconfigure flow returns error when authenticate succeeds but refresh fails."""
+
+    # Patch refresh and get_capabilities calls to allow integration to setup
+    with (patch("custom_components.midea_ac.config_flow.AC.get_capabilities"),
+          patch("custom_components.midea_ac.config_flow.AC.refresh")):
+        # Add mock config entry to HASS and setup integration
+        mock_config_entry.add_to_hass(hass)
+        await hass.config_entries.async_setup(mock_config_entry.entry_id)
+        await hass.async_block_till_done()
+
+    assert mock_config_entry.entry_id in hass.data[DOMAIN]
+    assert mock_config_entry.state is ConfigEntryState.LOADED
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={
+            "source": config_entries.SOURCE_RECONFIGURE,
+            "entry_id": mock_config_entry.entry_id,
+        }
+    )
+    assert result
+
+    # Patch construct to build a mock device that isn't online
+    with patch("custom_components.midea_ac.config_flow.Device.construct", autospec=True) as mock_construct:
+        device = MagicMock(spec=AC)
         device.authenticate = AsyncMock()
         device.refresh = AsyncMock()
         type(device).online = PropertyMock(return_value=False)
+        mock_construct.return_value = device
 
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
@@ -432,8 +524,7 @@ async def test_reconfigure_flow_cant_connect(hass: HomeAssistant) -> None:
                 CONF_HOST: "localhost",
                 CONF_PORT: 6444,
                 CONF_TOKEN: "1234",
-                CONF_KEY: "1234"
-
+                CONF_KEY: "1234",
             }
         )
         assert result
@@ -447,12 +538,39 @@ async def test_reconfigure_flow_cant_connect(hass: HomeAssistant) -> None:
         # Connection should fail
         assert result["errors"] == {"base": "cannot_connect"}
 
-    # Check manually configuring a V3 device that can't authenticate
-    with patch("custom_components.midea_ac.config_flow.AC", autospec=True) as mock_ac:
-        device = mock_ac.return_value
+
+async def test_reconfigure_flow_cant_authenticate(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+) -> None:
+    """Test the reconfigure flow returns error when authentication fails."""
+
+    # Patch refresh and get_capabilities calls to allow integration to setup
+    with (patch("custom_components.midea_ac.config_flow.AC.get_capabilities"),
+          patch("custom_components.midea_ac.config_flow.AC.refresh")):
+        # Add mock config entry to HASS and setup integration
+        mock_config_entry.add_to_hass(hass)
+        await hass.config_entries.async_setup(mock_config_entry.entry_id)
+        await hass.async_block_till_done()
+
+    assert mock_config_entry.entry_id in hass.data[DOMAIN]
+    assert mock_config_entry.state is ConfigEntryState.LOADED
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={
+            "source": config_entries.SOURCE_RECONFIGURE,
+            "entry_id": mock_config_entry.entry_id,
+        }
+    )
+    assert result
+
+    # Patch construct to build a mock device that can't authenticate
+    with patch("custom_components.midea_ac.config_flow.Device.construct", autospec=True) as mock_construct:
+        device = MagicMock(spec=AC)
         device.authenticate = AsyncMock(side_effect=AuthenticationError)
         device.refresh = AsyncMock()
         type(device).online = PropertyMock(return_value=False)
+        mock_construct.return_value = device
 
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
@@ -476,20 +594,11 @@ async def test_reconfigure_flow_cant_connect(hass: HomeAssistant) -> None:
         assert result["errors"] == {"base": "cannot_connect"}
 
 
-async def test_reconfigure_flow_unsupported_device(hass: HomeAssistant) -> None:
+async def test_reconfigure_flow_unsupported_device(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+) -> None:
     """Test the reconfigure flow when an unsupported device is configured."""
-
-    # Create a mock config entry
-    mock_config_entry = MockConfigEntry(
-        domain=DOMAIN,
-        data={
-            CONF_ID: "1234",
-            CONF_HOST: "localhost",
-            CONF_PORT: 6444,
-            CONF_TOKEN: None,
-            CONF_KEY: None,
-        }
-    )
 
     # Patch refresh and get_capabilities calls to allow integration to setup
     with (patch("custom_components.midea_ac.config_flow.AC.get_capabilities"),
@@ -510,11 +619,13 @@ async def test_reconfigure_flow_unsupported_device(hass: HomeAssistant) -> None:
     )
     assert result
 
-    with patch("custom_components.midea_ac.config_flow.AC", autospec=True) as mock_ac:
-        device = mock_ac.return_value
+    # Patch construct to build a mock device that is online but unsupported
+    with patch("custom_components.midea_ac.config_flow.Device.construct", autospec=True) as mock_construct:
+        device = MagicMock(spec=AC)
         device.refresh = AsyncMock()
         type(device).online = PropertyMock(return_value=True)
         type(device).supported = PropertyMock(return_value=False)
+        mock_construct.return_value = device
 
         # Manually configure a device
         result = await hass.config_entries.flow.async_configure(
